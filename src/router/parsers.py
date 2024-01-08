@@ -1,4 +1,5 @@
 import re
+from io import TextIOWrapper
 from design_components import *
 
 class PracticalFormatParser:
@@ -6,6 +7,7 @@ class PracticalFormatParser:
     A parser for files written based on the practical format
     """
 
+    # The states of the parser
     __states = ["State1", "State2", "State3", "State4", "State5", "State6"]
     __statesDelimiter = "###############################################################\n"
     __design = None
@@ -14,6 +16,9 @@ class PracticalFormatParser:
         None
     
     def __state_one(self, file):
+        """
+        First state of the parser
+        """
         line = file.readline()
         line = file.readline()
         line = file.readline()
@@ -60,7 +65,6 @@ class PracticalFormatParser:
             newRow = Row(name, type, xPos, yPos, width, height)
             self.__design.core.add_row(newRow)
             line = file.readline()
-        
 
     def __state_four(self, file):
         line = file.readline()
@@ -82,27 +86,64 @@ class PracticalFormatParser:
             self.__design.core.add_IO_port(newIOPort)
             line = file.readline()
 
+    def __create_component(self, name: str):
+        # Check  if component exists
+        newComponent: Component = self.__design.core.get_component(name)
+        if (not newComponent):
+            # If component does not exist
+            # Crate new component
+            newComponent = Component(name)
+
+            # Add new component to the design
+            self.__design.core.add_component(newComponent)
+
+        return newComponent
+
+    def __create_net(self, source, components):
+        name = "N%d" % (self.__design.core.noof_nets() + 1)
+        newDrain = []
+        for comp in components:
+            newComp = self.__create_component(comp)
+            newDrain.append(newComp)
+        
+        return Net(name, source, newDrain)
+
     def __state_five(self, file):
+        line = file.readline()
         line = file.readline()
         while True:
             if (line == self.__statesDelimiter):
                 break
+
+            splits = re.split(" ", line)
+
+            source = self.__design.core.get_IO_port(splits[1])
+            newNet = self.__create_net(source, splits[3:(len(splits) - 1)])
+            self.__design.core.add_net(newNet)
+
             line = file.readline()
 
     def __state_six(self, file):
         line = file.readline()
         line = file.readline()
         while True:
-            if ((line == self.__statesDelimiter) | (not line)):
+            if (not line):
                 break
         
-            splits = re.split(" |\n", line)
+            splits = re.split(" ", line)
             name = splits[1]
-            newComponent = Component(name)
-            self.__design.core.add_component(newComponent)
+            
+            source = self.__create_component(name)
+            newNet = self.__create_net(source, splits[3:(len(splits) - 1)])
+            self.__design.core.add_net(newNet)
+
             line = file.readline()
 
-    def parse_file(self, file):
+    def parse_file(self, file: TextIOWrapper):
+        """
+        Parses the file and returns the design
+        """
+
         self.__design = Design()
         # Simple for loop to test the access to the files
         # for line in file:

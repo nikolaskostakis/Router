@@ -23,12 +23,12 @@ class Row:
 
 
     # private data
-    __name = None   # Row's Name
-    __type = None   # Row's type
-    __xPos = None   # Row's top left x-coordinate
-    __yPos = None   # Row's top left y-coordinate
-    __width = None  # Row's width
-    __height = None # Row's height
+    __name: str = None     # Row's Name
+    __type:str = None      # Row's type
+    __xPos: float = None   # Row's top left x-coordinate
+    __yPos: float = None   # Row's top left y-coordinate
+    __width: float = None  # Row's width
+    __height: float = None # Row's height
 
     def __init__(self, name, type, xPos, yPos, width, height):
         self.__name = name
@@ -97,10 +97,10 @@ class IOPort:
 
 
     # Private data
-    __name = None
-    __xPos = None
-    __yPos = None
-    __side = None
+    __name: str = None    # Port's name
+    __xPos: float = None  # Port's x-coordinate
+    __yPos: float = None  # Port's x-coordinate
+    __side: str = None    # Side of the core where port is
 
     def __init__(self, name, xPos, yPos, side):
         self.__name = name
@@ -135,9 +135,9 @@ class Component:
     A class used to represent a component of the design
     """
 
-    __name = None
+    __name: str = None
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.__name = name
 
     def __repr__(self):
@@ -145,6 +145,36 @@ class Component:
 
     def __str__(self):
         return "Component: %s " % (self.__name)
+
+    def get_name(self):
+        """Returns the name of the Component"""
+        return self.__name
+
+
+# Class Net
+class Net:
+    """
+    A Class used to represent a net of the design
+    """
+
+    __name = None
+
+    __source = None
+    __drain = []
+
+    def __init__(self, name: str, source: (IOPort | Component), drain):
+        self.__name = name
+        self.__source = source
+        self.__drain = drain
+
+    def __str__(self):
+        pstr = "Net: %s Source: %s Drain: " % (self.__name, self.__source)
+        pstr += ' '.join(map(str, self.__drain))
+        return pstr
+
+    def get_name(self):
+        """Returns the name of the Net"""
+        return self.__name
 
 # Class Core
 class Core:
@@ -156,19 +186,24 @@ class Core:
     add_row(newRow)
     noof_rows()
     add_IO_port(newIOPort)
+    get_IO_port(name)
     noof_IO_ports()
+    add_component(newComponent)
+    get_component(name)
+    noof_IO_components()
     """
 
-    __coreUtil = None
-    __width = None
-    __height = None
-    __aspectRatio = None
-    __xOffset = None
-    __yOffset = None
+    __coreUtil: int = None
+    __width: float = None
+    __height: float = None
+    __aspectRatio: float = None
+    __xOffset: float = None
+    __yOffset: float = None
 
     __rows = []
     __ioPorts = []
     __components = []
+    __nets = []
 
     def __init__(self, coreUtil: int, width: float, height: float, aspectRatio: float, xOffset: float, yOffset: float):
         self.__coreUtil = coreUtil
@@ -193,46 +228,80 @@ class Core:
                self.__aspectRatio, self.__xOffset, self.__yOffset)
 
     # Rows
-    def add_row(self, newRow):
+    def add_row(self, newRow: Row):
         # Check if the the new row is object of class Row
         if (not isinstance(newRow, Row)):
             raise TypeError("Object is not a Row")
 
-        print(newRow)
         self.__rows.append(newRow)
 
     def noof_rows(self):
         return len(self.__rows)
 
     # I/O ports
-    def add_IO_port(self, newIOPort):
+    def add_IO_port(self, newIOPort: IOPort):
         # Check if the the new I/O port is object of class IOPort
         if (not isinstance(newIOPort, IOPort)):
             raise TypeError("Object is not an I/O Port")
 
-        print(newIOPort)
         self.__ioPorts.append(newIOPort)
 
+    def get_IO_port(self, name: str):
+        for port in self.__ioPorts:
+            if (port.get_name() == name):
+                return port
+        
+        return None
+    
     def noof_IO_ports(self):
         return len(self.__ioPorts)
     
     # Components
-    def add_component(self, newComponent):
+    def add_component(self, newComponent: Component):
         # Check if the the new I/O port is object of class IOPort
         if (not isinstance(newComponent, Component)):
             raise TypeError("Object is not a Component")
 
-        print(newComponent)
+        #print(newComponent)
         self.__components.append(newComponent)
+
+    def get_component(self, name: str) -> (Component | None):
+        for comp in self.__components:
+            if (comp.get_name() == name):
+                return comp
+        
+        return None
 
     def noof_components(self):
         return len(self.__components)
 
+    # Nets
+    def add_net(self, newNet: Net):
+        # Check if the the new I/O port is object of class IOPort
+        if (not isinstance(newNet, Net)):
+            raise TypeError("Object is not a Net")
+
+        print(newNet)
+        self.__nets.append(newNet)
+
+    def get_net(self, name: str) -> (Net | None):
+        for net in self.__components:
+            if (net.get_name() == name):
+                return net
+        
+        return None
+
+    def noof_nets(self):
+        return len(self.__nets)
 
 # Class Design
 class Design:
     """
     A class representing the whole design
+
+    Methods
+    add_name(name)
+    create_core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
     """
 
     __name = None
