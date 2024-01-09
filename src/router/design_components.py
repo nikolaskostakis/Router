@@ -42,13 +42,15 @@ class Row:
         return "Row: %s Type: %s " \
             "Location: %.3f %.3f " \
             "Width/Height: %.3f %.3f" \
-            % (self.__name, self.__type, self.__xPos, self.__yPos, self.__width, self.__height)
+            % (self.__name, self.__type, self.__xPos, self.__yPos,
+               self.__width, self.__height)
 
     def __str__(self):
         return "Row: %s Type: %s " \
             "Location: %.3f %.3f " \
             "Width/Height: %.3f %.3f" \
-            % (self.__name, self.__type, self.__xPos, self.__yPos, self.__width, self.__height)
+            % (self.__name, self.__type, self.__xPos, self.__yPos,
+               self.__width, self.__height)
 
     def get_name(self):
         """Returns the name of the row"""
@@ -109,10 +111,12 @@ class IOPort:
         self.__side = side
 
     def __repr__(self):
-        return "IO: %s Location: %.3f %.3f %s SIDE" % (self.__name, self.__xPos, self.__yPos, self.__side)
+        return "IO: %s Location: %.3f %.3f %s SIDE" \
+                % (self.__name, self.__xPos, self.__yPos, self.__side)
 
     def __str__(self):
-        return "IO: %s Location: %.3f %.3f %s SIDE" % (self.__name, self.__xPos, self.__yPos, self.__side)
+        return "IO: %s Location: %.3f %.3f %s SIDE" \
+                % (self.__name, self.__xPos, self.__yPos, self.__side)
 
     def get_name(self):
         """Returns the name of the I/O port"""
@@ -205,7 +209,8 @@ class Core:
     __components = []
     __nets = []
 
-    def __init__(self, coreUtil: int, width: float, height: float, aspectRatio: float, xOffset: float, yOffset: float):
+    def __init__(self, coreUtil: int, width: float, height: float,
+                 aspectRatio: float, xOffset: float, yOffset: float):
         self.__coreUtil = coreUtil
         self.__width = width
         self.__height = height
@@ -310,5 +315,6 @@ class Design:
     def add_name(self, name: str):
         self.__name = name
 
-    def create_core(self, coreUtil: int, width: float, height: float, aspectRatio: float, xOffset: float, yOffset: float):
+    def create_core(self, coreUtil: int, width: float, height: float,
+                    aspectRatio: float, xOffset: float, yOffset: float):
         self.core = Core(coreUtil, width, height, aspectRatio, xOffset, yOffset)

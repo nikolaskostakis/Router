@@ -144,10 +144,10 @@ class PracticalFormatParser:
         Parses the file and returns the design
         """
 
+        # Create new design
         self.__design = Design()
-        # Simple for loop to test the access to the files
-        # for line in file:
-        #      print(line)
+
+        # Parse file 
         for state in self.__states:
             match state:
                 case "State1": self.__state_one(file)
