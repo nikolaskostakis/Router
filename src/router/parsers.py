@@ -25,9 +25,12 @@ class PracticalFormatParser:
         line = file.readline()
         line = file.readline()
         splits = line.split(' ')
-        self.__design.add_name(splits[2])
+        self.__design.set_name(splits[2])
 
     def __state_two(self, file):
+        """
+        Second state of the parser
+        """
         line = file.readline()
 
         line = file.readline()
@@ -48,6 +51,9 @@ class PracticalFormatParser:
         self.__design.create_core(util, width, height, ratio, xOffset, yOffset)
 
     def __state_three(self, file):
+        """
+        Third state of the parser
+        """
         line = file.readline()
         line = file.readline()
         line = file.readline()
@@ -58,15 +64,18 @@ class PracticalFormatParser:
             splits = re.split(" |\n", line)
             name = splits[1]
             type = splits[3]
-            xPos = splits[5]
-            yPos = splits[6]
-            width = splits[8]
-            height = splits[9]
+            xPos = float(splits[5])
+            yPos = float(splits[6])
+            width = float(splits[8])
+            height = float(splits[9])
             newRow = Row(name, type, xPos, yPos, width, height)
             self.__design.core.add_row(newRow)
             line = file.readline()
 
     def __state_four(self, file):
+        """
+        Fourth state of the parser
+        """
         line = file.readline()
         line = file.readline()
         while True:
@@ -75,8 +84,8 @@ class PracticalFormatParser:
 
             splits = re.split(" |\n", line)
             name = splits[1]
-            xPos = splits[3]
-            yPos = splits[4]
+            xPos = float(splits[3])
+            yPos = float(splits[4])
 
             line = file.readline()
             splits = re.split(" |\n", line)
@@ -103,12 +112,17 @@ class PracticalFormatParser:
         name = "N%d" % (self.__design.core.noof_nets() + 1)
         newDrain = []
         for comp in components:
+            # Add component to the list of endpoints of the net
             newComp = self.__create_component(comp)
             newDrain.append(newComp)
         
+        # Add new net to the design
         return Net(name, source, newDrain)
 
     def __state_five(self, file):
+        """
+        Fifth state of the parser
+        """
         line = file.readline()
         line = file.readline()
         while True:
@@ -124,6 +138,9 @@ class PracticalFormatParser:
             line = file.readline()
 
     def __state_six(self, file):
+        """
+        Sixth state of the parser
+        """
         line = file.readline()
         line = file.readline()
         while True:
@@ -156,7 +173,5 @@ class PracticalFormatParser:
                 case "State4": self.__state_four(file)
                 case "State5": self.__state_five(file)
                 case "State6": self.__state_six(file)
-
-        # TODO: The actual Parser
             
         return self.__design

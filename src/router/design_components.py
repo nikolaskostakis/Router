@@ -30,13 +30,14 @@ class Row:
     __width: float = None  # Row's width
     __height: float = None # Row's height
 
-    def __init__(self, name, type, xPos, yPos, width, height):
+    def __init__(self, name: str, type: str,
+                 xPos: float, yPos: float, width: float, height: float):
         self.__name = name
         self.__type = type 
-        self.__xPos = float(xPos)
-        self.__yPos = float(yPos)
-        self.__width = float(width)
-        self.__height = float(height)
+        self.__xPos = xPos
+        self.__yPos = yPos
+        self.__width = width
+        self.__height = height
 
     def __repr__(self):
         return "Row: %s Type: %s " \
@@ -104,10 +105,10 @@ class IOPort:
     __yPos: float = None  # Port's x-coordinate
     __side: str = None    # Side of the core where port is
 
-    def __init__(self, name, xPos, yPos, side):
+    def __init__(self, name: str, xPos: float, yPos: float, side: str):
         self.__name = name
-        self.__xPos = float(xPos)
-        self.__yPos = float(yPos)
+        self.__xPos = xPos
+        self.__yPos = yPos
         self.__side = side
 
     def __repr__(self):
@@ -161,10 +162,10 @@ class Net:
     A Class used to represent a net of the design
     """
 
-    __name = None
+    __name: str = None
 
-    __source = None
-    __drain = []
+    __source: (IOPort | Component)= None
+    __drain: (IOPort | Component) = []
 
     def __init__(self, name: str, source: (IOPort | Component), drain):
         self.__name = name
@@ -286,7 +287,7 @@ class Core:
         if (not isinstance(newNet, Net)):
             raise TypeError("Object is not a Net")
 
-        print(newNet)
+        #print(newNet)
         self.__nets.append(newNet)
 
     def get_net(self, name: str) -> (Net | None):
@@ -305,16 +306,29 @@ class Design:
     A class representing the whole design
 
     Methods
-    add_name(name)
+    set_name(name)
+    get_name()
     create_core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
     """
 
-    __name = None
-    core = None
+    __name: str = None
+    core: Core = None
 
-    def add_name(self, name: str):
+    def set_name(self, name: str):
+        """
+        Sets the name of the design
+        """
         self.__name = name
+
+    def get_name(self):
+        """
+        Returns the design name
+        """
+        return self.__name
 
     def create_core(self, coreUtil: int, width: float, height: float,
                     aspectRatio: float, xOffset: float, yOffset: float):
+        """
+        Creates a core with the given specifications
+        """
         self.core = Core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
