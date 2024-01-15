@@ -1,3 +1,5 @@
+from typing import List
+
 # Class Row
 class Row:
     """
@@ -205,10 +207,10 @@ class Core:
     __xOffset: float = None
     __yOffset: float = None
 
-    __rows = []
-    __ioPorts = []
-    __components = []
-    __nets = []
+    __rows: List[Row] = []
+    __ioPorts: List[IOPort] = []
+    __components: List[Component] = []
+    __nets: List[Net] = []
 
     def __init__(self, coreUtil: int, width: float, height: float,
                  aspectRatio: float, xOffset: float, yOffset: float):
@@ -233,6 +235,23 @@ class Core:
             % (self.__coreUtil, self.__width, self.__height,
                self.__aspectRatio, self.__xOffset, self.__yOffset)
 
+    # Offsets
+    def get_x_offset(self):
+        return self.__xOffset
+    
+    def get_y_offset(self):
+        return self.__yOffset
+
+    # Dimensions
+    def get_width(self):
+        return self.__width
+
+    def get_height(self):
+        return self.__height
+
+    def get_dimentions(self):
+        return self.__width, self.__height
+
     # Rows
     def add_row(self, newRow: Row):
         # Check if the the new row is object of class Row
@@ -240,6 +259,12 @@ class Core:
             raise TypeError("Object is not a Row")
 
         self.__rows.append(newRow)
+
+    def get_row(self, index: int):
+        if (index < len(self.__rows)):
+            return self.__rows[index]
+        else:
+            return None
 
     def noof_rows(self):
         return len(self.__rows)
@@ -252,13 +277,17 @@ class Core:
 
         self.__ioPorts.append(newIOPort)
 
-    def get_IO_port(self, name: str):
-        for port in self.__ioPorts:
-            if (port.get_name() == name):
-                return port
-        
+    def get_IO_port(self, name: str = None, index: int = None):
+        if (index == None):
+            for port in self.__ioPorts:
+                if (port.get_name() == name):
+                    return port
+        else:
+            if (index < len(self.__ioPorts)):
+                return self.__ioPorts[index]
+
         return None
-    
+
     def noof_IO_ports(self):
         return len(self.__ioPorts)
     

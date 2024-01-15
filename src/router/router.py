@@ -1,13 +1,29 @@
 from design_components import Design
-from parsers import PracticalFormatParser
 from tcl_interpreter import TclInterpreter
 
-pFP = PracticalFormatParser()
+class Router:
+    """
+    Top class
+    """
 
-# file = open("benchmarks\counter7.txt", 'r')
+    interp: TclInterpreter = None
 
-#design = pFP.parse_file(file)
-#print(design.core)
-inter = TclInterpreter()
+    def __init__(self):
+        None
 
-inter.interpreter()
+    def start_interpreter(self):
+        self.interp = TclInterpreter()
+        self.interp.interpreter()
+
+    def main(self):
+        """
+        """
+        if (__name__ != "__main__"):
+            print("This method is to be used as main function " \
+                  "for standalone execution of Router\n" \
+                  "Cannot be used otherwise")
+
+        self.start_interpreter()
+
+router = Router()
+router.main()
