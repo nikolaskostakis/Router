@@ -1,161 +1,135 @@
 from typing import List
 
-# Class Row
-class Row:
-    """
-    A class used to represent a row of the design
+class BaseDesignElement:
+    """Base class used for a design element"""
 
-    Methods
-    -------
-    get_name()
-        Returns the name of the row
-    get_x_coordinate()
-        Returns the x-coordinate of the row's top left corner 
-    get_y_coordinate()
-        Returns the y-coordinate of the row's top left corner
-    get_coordinates()
-        Returns the coordinates (x,y) of the row's top left corner
-    get_width()
-        Returns the width of the row 
-    get_height()
-        Returns the height of the row
-    get_dimentions()
-        Returns the dimentions (width, height) of the row
-    """
+    _name: str = None
+    """Name of design element"""
+    _x: float = None
+    """X Coordinate"""
+    _y: float = None
+    """Y Coordinate"""
 
+    def __init__(self, name: str, x: float, y: float) -> None:
+        self._name = name
+        self._x = x
+        self._y = y
 
-    # private data
-    __name: str = None     # Row's Name
-    __type:str = None      # Row's type
-    __xPos: float = None   # Row's top left x-coordinate
-    __yPos: float = None   # Row's top left y-coordinate
-    __width: float = None  # Row's width
-    __height: float = None # Row's height
+    # Name
+    @property
+    def name(self) -> str:
+        """Returns the name"""
+        return self._name
 
-    def __init__(self, name: str, type: str,
-                 xPos: float, yPos: float, width: float, height: float):
-        self.__name = name
-        self.__type = type 
-        self.__xPos = xPos
-        self.__yPos = yPos
-        self.__width = width
-        self.__height = height
+    # Coordinates
+    @property
+    def x(self) -> float:
+        """Returns x-coordinate"""
+        return self._x
 
-    def __repr__(self):
-        return "Row: %s Type: %s " \
-            "Location: %.3f %.3f " \
-            "Width/Height: %.3f %.3f" \
-            % (self.__name, self.__type, self.__xPos, self.__yPos,
-               self.__width, self.__height)
+    @x.setter
+    def x(self, newX:float) -> None:
+        """Assign new x-coordinate"""
+        self._x = newX
 
-    def __str__(self):
-        return "Row: %s Type: %s " \
-            "Location: %.3f %.3f " \
-            "Width/Height: %.3f %.3f" \
-            % (self.__name, self.__type, self.__xPos, self.__yPos,
-               self.__width, self.__height)
+    @property
+    def y(self) -> float:
+        """Returns y-coordinate"""
+        return self._y
+    
+    @y.setter
+    def y(self, newY):
+        self._y = newY
 
-    def get_name(self):
-        """Returns the name of the row"""
-        return self.__name
+    def get_coordinates(self) -> tuple[float, float]:
+        """Returns the coordinates (x,y)"""
+        return self._x, self._y
 
-    # Coordinate
-    def get_x_coordinate(self):
-        """Returns the x-coordinate of the row's top left corner"""
-        return self.__xPos
+class RectangleDesignElement(BaseDesignElement):
+    """Base class used for design elements with rectangular shape"""
 
-    def get_y_coordinate(self):
-        """Returns the y-coordinate of the row's top left corner"""
-        return self.__xPos
+    _width: float = None
+    """Widht of the design element"""
+    _height: float = None
+    """ Height of the design element"""
 
-    def get_coordinates(self):
-        """Returns the coordinates (x,y) of the row's top left corner"""
-        return self.__xPos, self.__yPos
+    def __init__(self, name: str, x: float, y: float,
+                 width: float, height: float) -> None:
+        super().__init__(name, x, y)
+        self._width = width
+        self._height = height
 
     # Dimensions
-    def get_width(self):
-        return self.__width
+    @property
+    def width(self) -> float:
+        """Returns width"""
+        return self._width
 
-    def get_height(self):
-        return self.__height
+    @property
+    def height(self) -> float:
+        """Returns heigh"""
+        return self._height
 
-    def get_dimentions(self):
-        return self.__width, self.__height
+    def get_dimentions(self) -> tuple[float, float]:
+        """Returns dimentions (width, height)"""
+        return self._width, self._height
 
+# Class Row
+class Row(RectangleDesignElement):
+    """A class used to represent a row of the design"""
+
+    # private data
+    _type: str = None     
+    """ Row type """
+
+    def __init__(self, name: str, type: str, x: float, y: float,
+                 width: float, height: float) -> None:
+        super().__init__(name, x, y, width, height)
+        self._type = type 
+
+    def __repr__(self) -> None:
+        return "Row: %s Type: %s Location: %.3f %.3f Width/Height: %.3f %.3f" \
+            % (self._name, self._type, self._x, self._y,
+               self._width, self._height)
+
+    def __str__(self) -> None:
+        return "Row: %s Type: %s Location: %.3f %.3f Width/Height: %.3f %.3f" \
+            % (self._name, self._type, self._x, self._y,
+               self._width, self._height)
 
 # Class IOPort
-class IOPort:
-    """
-    A class used to represent an I/O port of the design
-
-    Methods
-    -------
-    get_name()
-        Returns the name of the I/O port
-    get_x_Coordinate()
-        Returns the x-coordinate of the I/O port 
-    get_y_Coordinate()
-        Returns the y-coordinate of the I/O port
-    get_coordinates()
-        Returns the coordinates (x,y) of the I/O port
-    """
-
+class IOPort(BaseDesignElement):
+    """A class used to represent an I/O port of the design"""
 
     # Private data
-    __name: str = None    # Port's name
-    __xPos: float = None  # Port's x-coordinate
-    __yPos: float = None  # Port's x-coordinate
-    __side: str = None    # Side of the core where port is
+    _side: str = None
+    """Side of the core where port is"""
 
-    def __init__(self, name: str, xPos: float, yPos: float, side: str):
-        self.__name = name
-        self.__xPos = xPos
-        self.__yPos = yPos
-        self.__side = side
+    def __init__(self, name: str, x: float, y: float, side: str) -> None:
+        super().__init__(name, x, y)
+        self._side = side
 
-    def __repr__(self):
+    def __repr__(self) -> None:
         return "IO: %s Location: %.3f %.3f %s SIDE" \
-                % (self.__name, self.__xPos, self.__yPos, self.__side)
+                % (self._name, self._x, self._y, self._side)
 
-    def __str__(self):
+    def __str__(self) -> None:
         return "IO: %s Location: %.3f %.3f %s SIDE" \
-                % (self.__name, self.__xPos, self.__yPos, self.__side)
-
-    def get_name(self):
-        """Returns the name of the I/O port"""
-        return self.__name
-
-    # Coordinate
-    def get_x_Coordinate(self):
-        return self.__xPos
-
-    def get_y_Coordinate(self):
-        return self.__xPos
-
-    def get_coordinates(self):
-        return self.__xPos, self.__yPos
+                % (self._name, self._x, self._y, self._side)
 
 
 # Class Component
-class Component:
-    """
-    A class used to represent a component of the design
-    """
+class Component(RectangleDesignElement):
+    """A class used to represent a component of the design"""
 
-    __name: str = None
+    def __init__(self, name: str) -> None:
+        super().__init__(name, 0, 0, 1.26, 0.575)
 
-    def __init__(self, name: str):
-        self.__name = name
+    def __repr__(self) -> None:
+        return "Component: %s " % (self._name)
 
-    def __repr__(self):
-        return "Component: %s " % (self.__name)
-
-    def __str__(self):
-        return "Component: %s " % (self.__name)
-
-    def get_name(self):
-        """Returns the name of the Component"""
-        return self.__name
+    def __str__(self) -> None:
+        return "Component: %s " % (self._name)
 
 
 # Class Net
@@ -277,10 +251,10 @@ class Core:
 
         self.__ioPorts.append(newIOPort)
 
-    def get_IO_port(self, name: str = None, index: int = None):
+    def get_IO_port(self, name:str=None, index:int=None) -> (IOPort|None):
         if (index == None):
             for port in self.__ioPorts:
-                if (port.get_name() == name):
+                if (port.name == name):
                     return port
         else:
             if (index < len(self.__ioPorts)):
@@ -300,10 +274,14 @@ class Core:
         #print(newComponent)
         self.__components.append(newComponent)
 
-    def get_component(self, name: str) -> (Component | None):
-        for comp in self.__components:
-            if (comp.get_name() == name):
-                return comp
+    def get_component(self, name:str=None, index:int=None) -> (Component|None):
+        if (index == None):
+            for comp in self.__components:
+                if (comp.name == name):
+                    return comp
+        else:
+            if (index < len(self.__components)):
+                return self.__components[index]
         
         return None
 
@@ -341,7 +319,7 @@ class Design:
     """
 
     __name: str = None
-    core: Core = None
+    __core: Core = None
 
     def set_name(self, name: str):
         """
@@ -354,10 +332,14 @@ class Design:
         Returns the design name
         """
         return self.__name
+    
+    @property
+    def core(self):
+        return self.__core
 
     def create_core(self, coreUtil: int, width: float, height: float,
                     aspectRatio: float, xOffset: float, yOffset: float):
         """
         Creates a core with the given specifications
         """
-        self.core = Core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
+        self.__core = Core(coreUtil, width, height, aspectRatio, xOffset, yOffset)

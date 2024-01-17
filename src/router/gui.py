@@ -41,6 +41,17 @@ class GUI(Tk):
             self.__canvas.create_oval((x-radius), (y-radius),
                                       (x+radius), (y+radius), fill="yellow")
 
+    def __draw_components(self, ratio):
+        for i in range(self.__design.core.noof_components()):
+            x, y = self.__design.core.get_component(index=i).get_coordinates()
+            width, height = self.__design.core.get_component(index=i).get_dimentions()
+            
+            x = x * ratio + self.__offset
+            y = y * ratio + self.__offset
+            width *= ratio
+            height *= ratio
+
+            self.__canvas.create_rectangle(x, y, (width+x), (height+y),outline="blue")
 
     def __draw_core(self):
         self.__canvas = Canvas(self,width = self.__width,
@@ -71,6 +82,9 @@ class GUI(Tk):
 
         # IO Ports
         self.__draw_IO_ports(ratio)
+
+        # Components
+        self.__draw_components(ratio)
 
         self.__canvas.pack()
     

@@ -4,6 +4,7 @@ from tkinter import Tcl
 from parsers import PracticalFormatParser
 from design_components import Design
 from gui import GUI
+from placement import RandomPlacer
 
 # Class TclInterpreter
 class TclInterpreter:
@@ -18,6 +19,7 @@ class TclInterpreter:
 
     __commands = [
         "break", "cd", " for", "foreach", "history", "if", "load_design",
+        "place_random", 
         "puts", "pwd", "quit", "read_design", "remove_design", "return", 
         "save_design", "set", "start_gui", "while"
         ]
@@ -42,6 +44,7 @@ class TclInterpreter:
 
     def __create_Tcl_commands(self):
         self.__tcl.createcommand("load_design", self.__load_design)
+        self.__tcl.createcommand("place_random", self.__place_random)
         self.__tcl.createcommand("read_design", self.__read_design)
         self.__tcl.createcommand("remove_design", self.__remove_design)
         self.__tcl.createcommand("save_design", self.__save_design)
@@ -57,6 +60,14 @@ class TclInterpreter:
     def __load_design(self, *args):
         self.__print_yellow("Under Construction")
         print("To be used for loading design used on previous run")
+
+    def __place_random(self, *args):
+        rp =RandomPlacer()
+        res = rp.run(self.__design.core)
+        if res:
+            print("Success")
+        else:
+            print("Failure")
 
     def __read_design(self, *args):
         commandFormat = "read_design [-h | -f file]"
@@ -112,6 +123,7 @@ class TclInterpreter:
                 self.__print_red("Invalid Tcl command or options on one")
 
             readline.add_history(line)
+
 
     # For Design
     def set_design(self, newDesign: Design):
