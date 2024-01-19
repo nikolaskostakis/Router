@@ -1,10 +1,11 @@
 import readline
 from tkinter import TclError
 from tkinter import Tcl
-from parsers import PracticalFormatParser
+
 from design_components import Design
 from gui import GUI
-from placement import RandomPlacer
+from parsers import praactical_format_parcer
+from placement import random_placer
 
 # Class TclInterpreter
 class TclInterpreter:
@@ -18,10 +19,15 @@ class TclInterpreter:
     """
 
     __commands = [
-        "break", "cd", " for", "foreach", "history", "if", "load_design",
-        "place_random", 
-        "puts", "pwd", "quit", "read_design", "remove_design", "return", 
-        "save_design", "set", "start_gui", "while"
+        # Tcl Commands
+        "break", "cd", " for", "foreach", "if", 
+        "puts", "pwd", "return", "set", "while",
+        # Readline
+        "history",
+        # Custom commands
+        "list_components", "list_io_ports", "list_rows",
+        "load_design", "place_random", "quit", "read_design",
+        "remove_design", "save_design", "start_gui"
         ]
 
     __tcl = None
@@ -30,6 +36,7 @@ class TclInterpreter:
     __gui: GUI = None
 
     def __init__(self):
+        self.__commands.sort()
         None
 
     def __print_red(self, msg): print("\x1B[31m" + msg + "\x1B[0m")
@@ -43,6 +50,9 @@ class TclInterpreter:
         readline.set_completer(self.__completer)
 
     def __create_Tcl_commands(self):
+        self.__tcl.createcommand("list_components", self.__list_components)
+        self.__tcl.createcommand("list_io_ports", self.__list_io_ports)
+        self.__tcl.createcommand("list_rows", self.__list_rows)
         self.__tcl.createcommand("load_design", self.__load_design)
         self.__tcl.createcommand("place_random", self.__place_random)
         self.__tcl.createcommand("read_design", self.__read_design)
@@ -57,13 +67,36 @@ class TclInterpreter:
         return results[state]
 
     # Tcl Commands
+    def __list_components(self, *args):
+        if not self.__design:
+            print("There is no design")
+            return
+        
+        for comp in self.__design.core.components:
+            print(comp)
+
+    def __list_io_ports(self, *args):
+        if not self.__design:
+            print("There is no design")
+            return
+        
+        for ioPort in self.__design.core.ioPorts:
+            print(ioPort)
+
+    def __list_rows(self, *args):
+        if not self.__design:
+            print("There is no design")
+            return
+        
+        for row in self.__design.core.rows:
+            print(row)
+
     def __load_design(self, *args):
         self.__print_yellow("Under Construction")
         print("To be used for loading design used on previous run")
 
     def __place_random(self, *args):
-        rp =RandomPlacer()
-        res = rp.run(self.__design.core)
+        res = random_placer(self.__design.core)
         if res:
             print("Success")
         else:
@@ -77,16 +110,27 @@ class TclInterpreter:
             print(commandFormat + "\n" + commandDescription)
             return
         elif ((len(args) == 2) & (args[0] == "-f")):
-            print(args[1])
-            pFP = PracticalFormatParser()
-            file = open(args[1], "r")
-            self.__design = pFP.parse_file(file)
+            if self.__design:
+                print("Design is already loaded")
+                return
+
+            try:
+                with open(args[1], "r") as file:
+                    newDesign = praactical_format_parcer(file)
+            except IOError:
+                print("There is no file: %s" % (args[1]))
+            
+            if not newDesign:
+                print("Failure")
+            else:
+                self.__design = newDesign
+                print("Success")
         else:
             raise TclError
 
     def __remove_design(self):
         if (self.__design != None):
-            self.__design = None
+            del self.__design
             print("Design Removed")
         else:
             print("There is no design to be removed")

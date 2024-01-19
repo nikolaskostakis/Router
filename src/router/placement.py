@@ -1,22 +1,32 @@
+"""
+Module containing functions for placement
+"""
+
 import random
 from typing import List
+
 from design_components import Core
 from design_components import Component
 
 MAX_RANDOM_TRIES = 100
 
-class RandomPlacer:
+def random_placer(core: Core) -> bool:
+    """
+    Function used to place the components of the design in random positions
+    Returns True if successful and False otherwise
 
-    _placedComponents: List[Component] = []
+    Function does not check for mixed-cell-heights
+    """
 
-    def __init__(self):
-        None
+    placedComponents: List[Component] = []
+    """Temporary queue, used for already placed components"""
 
-    def _placement_trial(self,x,y, width):
-        if not self._placedComponents:
+    def _placement_trial(x:float, y:float, width:float) -> bool:
+        """Checks if the new componen's destination is empty"""
+        if not placedComponents:
             return True
 
-        for comp in self._placedComponents:
+        for comp in placedComponents:
             # Check if they are in the same row
             if (comp.y != y): continue
 
@@ -27,26 +37,27 @@ class RandomPlacer:
         
         return True
 
+    rows = core.noof_rows()
+    for comp in core.components:
+        placed = False
+        for j in range(MAX_RANDOM_TRIES):
+            newRow = random.randrange(0, rows)
+            xMin,y = core.rows[newRow].get_coordinates()
+            width = comp.width
+            xMax = xMin + core.rows[newRow].width - width
+            x = random.uniform(xMin, xMax)
 
-    def run(self, core: Core) -> bool:
-        rows = core.noof_rows()
-        for i in range(core.noof_components()):
-            placed = False
-            for j in range(MAX_RANDOM_TRIES):
-                newRow = random.randrange(0, rows)
-                xMin,y = core.get_row(newRow).get_coordinates()
-                width = core.get_component(index=i).width
-                xMax = xMin + core.get_row(newRow).width - width
-                x = random.uniform(xMin, xMax)
+            if (_placement_trial(x,y,width)):
+                comp.x = x
+                comp.y = y
+                placedComponents.append(comp)
 
-                if (self._placement_trial(x,y,width)):
-                    core.get_component(index=i).x = x
-                    core.get_component(index=i).y = y
-                    self._placedComponents.append(core.get_component(index=i))
-                    placed = True
-                    break
+                placed = True
+                break
 
-            if not placed:
-                return False
-        
-        return True
+        if not placed:
+            placedComponents.clear()
+            return False
+    
+    placedComponents.clear()
+    return True

@@ -1,5 +1,6 @@
 from typing import List
 
+# Class BaseDesignElement
 class BaseDesignElement:
     """Base class used for a design element"""
 
@@ -10,7 +11,7 @@ class BaseDesignElement:
     _y: float = None
     """Y Coordinate"""
 
-    def __init__(self, name: str, x: float, y: float) -> None:
+    def __init__(self, name:str, x:float, y:float) -> None:
         self._name = name
         self._x = x
         self._y = y
@@ -44,7 +45,10 @@ class BaseDesignElement:
     def get_coordinates(self) -> tuple[float, float]:
         """Returns the coordinates (x,y)"""
         return self._x, self._y
+# End of class
 
+
+# Class RectangleDesignElement
 class RectangleDesignElement(BaseDesignElement):
     """Base class used for design elements with rectangular shape"""
 
@@ -53,7 +57,7 @@ class RectangleDesignElement(BaseDesignElement):
     _height: float = None
     """ Height of the design element"""
 
-    def __init__(self, name: str, x: float, y: float,
+    def __init__(self, name:str, x:float, y:float,
                  width: float, height: float) -> None:
         super().__init__(name, x, y)
         self._width = width
@@ -73,6 +77,8 @@ class RectangleDesignElement(BaseDesignElement):
     def get_dimentions(self) -> tuple[float, float]:
         """Returns dimentions (width, height)"""
         return self._width, self._height
+# End of class
+
 
 # Class Row
 class Row(RectangleDesignElement):
@@ -82,7 +88,7 @@ class Row(RectangleDesignElement):
     _type: str = None     
     """ Row type """
 
-    def __init__(self, name: str, type: str, x: float, y: float,
+    def __init__(self, name:str, type:str, x:float, y:float,
                  width: float, height: float) -> None:
         super().__init__(name, x, y, width, height)
         self._type = type 
@@ -91,11 +97,8 @@ class Row(RectangleDesignElement):
         return "Row: %s Type: %s Location: %.3f %.3f Width/Height: %.3f %.3f" \
             % (self._name, self._type, self._x, self._y,
                self._width, self._height)
+# End of class
 
-    def __str__(self) -> None:
-        return "Row: %s Type: %s Location: %.3f %.3f Width/Height: %.3f %.3f" \
-            % (self._name, self._type, self._x, self._y,
-               self._width, self._height)
 
 # Class IOPort
 class IOPort(BaseDesignElement):
@@ -105,31 +108,39 @@ class IOPort(BaseDesignElement):
     _side: str = None
     """Side of the core where port is"""
 
-    def __init__(self, name: str, x: float, y: float, side: str) -> None:
+    def __init__(self, name:str, x:float, y:float, side:str) -> None:
         super().__init__(name, x, y)
         self._side = side
 
     def __repr__(self) -> None:
         return "IO: %s Location: %.3f %.3f %s SIDE" \
                 % (self._name, self._x, self._y, self._side)
-
-    def __str__(self) -> None:
-        return "IO: %s Location: %.3f %.3f %s SIDE" \
-                % (self._name, self._x, self._y, self._side)
+# End of class
 
 
 # Class Component
 class Component(RectangleDesignElement):
     """A class used to represent a component of the design"""
 
-    def __init__(self, name: str) -> None:
-        super().__init__(name, 0, 0, 1.26, 0.575)
+    # Component dimentions based on older Practical Format files
+    OLD_PF_COMP_WIDTH = 1.260
+    """Component Width from older praactical format inputs"""
+    OLD_PF_COMP_HEIGHT = 0.576
+    """Component Height from older praactical format inputs"""
+
+    _type: str = None
+    _timingType: str = None
+
+    def __init__(self, name:str, type:str = "n/a", timingType:str = "n/a",
+                 width:float = OLD_PF_COMP_WIDTH,
+                 heigh:float = OLD_PF_COMP_HEIGHT) -> None:
+        super().__init__(name, 0, 0, width, heigh)
+        self._type = type
+        self._timingType = timingType
 
     def __repr__(self) -> None:
         return "Component: %s " % (self._name)
-
-    def __str__(self) -> None:
-        return "Component: %s " % (self._name)
+# End of class
 
 
 # Class Net
@@ -138,174 +149,162 @@ class Net:
     A Class used to represent a net of the design
     """
 
-    __name: str = None
+    _name: str = None
 
     __source: (IOPort | Component)= None
-    __drain: (IOPort | Component) = []
+    __drain: List[IOPort | Component] = []
 
-    def __init__(self, name: str, source: (IOPort | Component), drain):
-        self.__name = name
+    def __init__(self, name:str, source:(IOPort|Component),
+                 drain:List[IOPort|Component]):
+        self._name = name
         self.__source = source
         self.__drain = drain
 
     def __str__(self):
-        pstr = "Net: %s Source: %s Drain: " % (self.__name, self.__source)
+        pstr = "Net: %s Source: %s Drain: " % (self._name, self.__source)
         pstr += ' '.join(map(str, self.__drain))
         return pstr
 
     def get_name(self):
         """Returns the name of the Net"""
-        return self.__name
+        return self._name
+# End of class
+
 
 # Class Core
-class Core:
-    """
-    A class used to represent a core of the design 
+class Core(RectangleDesignElement):
+    """A class used to represent a core of the design"""
 
-    Methods
-    -------
-    add_row(newRow)
-    noof_rows()
-    add_IO_port(newIOPort)
-    get_IO_port(name)
-    noof_IO_ports()
-    add_component(newComponent)
-    get_component(name)
-    noof_IO_components()
-    """
+    _coreUtil: int = None
+    _aspectRatio: float = None
+    _xOffset: float = None
+    _yOffset: float = None
 
-    __coreUtil: int = None
-    __width: float = None
-    __height: float = None
-    __aspectRatio: float = None
-    __xOffset: float = None
-    __yOffset: float = None
+    _rows: List[Row] = []
+    _ioParts: List[IOPort] = []
+    _components: List[Component] = []
+    _nets: List[Net] = []
 
-    __rows: List[Row] = []
-    __ioPorts: List[IOPort] = []
-    __components: List[Component] = []
-    __nets: List[Net] = []
-
-    def __init__(self, coreUtil: int, width: float, height: float,
-                 aspectRatio: float, xOffset: float, yOffset: float):
-        self.__coreUtil = coreUtil
-        self.__width = width
-        self.__height = height
-        self.__aspectRatio = aspectRatio
-        self.__xOffset = xOffset
-        self.__yOffset = yOffset
+    def __init__(self, coreUtil:int, width:float, height:float,
+                 aspectRatio:float, xOffset:float, yOffset:float):
+        super().__init__("Core", 0, 0, width, height)
+        self._coreUtil = coreUtil
+        self._aspectRatio = aspectRatio
+        self._xOffset = xOffset
+        self._yOffset = yOffset
 
     def __repr__(self):
         return "Core Utilisation: %2d%%\n" \
             "Core Width, Height: %.3f, %.3f, Aspect Ratio: %.3f\n" \
             "Core X, Y Offsets: %.3f, %.3f" \
-            % (self.__coreUtil, self.__width, self.__height,
-               self.__aspectRatio, self.__xOffset, self.__yOffset)
-
-    def __str__(self):
-        return "Core Utilisation: %2d%%\n" \
-            "Core Width, Height: %.3f, %.3f, Aspect Ratio: %.3f\n" \
-            "Core X, Y Offsets: %.3f, %.3f" \
-            % (self.__coreUtil, self.__width, self.__height,
-               self.__aspectRatio, self.__xOffset, self.__yOffset)
+            % (self._coreUtil, self._width, self._height,
+               self._aspectRatio, self._xOffset, self._yOffset)
 
     # Offsets
-    def get_x_offset(self):
-        return self.__xOffset
+    @property
+    def x_offset(self) -> float:
+        return self._xOffset
     
-    def get_y_offset(self):
-        return self.__yOffset
-
-    # Dimensions
-    def get_width(self):
-        return self.__width
-
-    def get_height(self):
-        return self.__height
-
-    def get_dimentions(self):
-        return self.__width, self.__height
+    @property
+    def y_offset(self) -> float:
+        return self._yOffset
 
     # Rows
-    def add_row(self, newRow: Row):
+    @property
+    def rows(self) -> List[Row]:
+        return self._rows
+
+    def add_row(self, newRow: Row) -> None:
         # Check if the the new row is object of class Row
         if (not isinstance(newRow, Row)):
             raise TypeError("Object is not a Row")
 
-        self.__rows.append(newRow)
+        self._rows.append(newRow)
 
-    def get_row(self, index: int):
-        if (index < len(self.__rows)):
-            return self.__rows[index]
-        else:
-            return None
-
-    def noof_rows(self):
-        return len(self.__rows)
+    def noof_rows(self) -> int:
+        return len(self._rows)
 
     # I/O ports
-    def add_IO_port(self, newIOPort: IOPort):
+    @property
+    def ioPorts(self) -> List[IOPort]:
+        return self._ioParts
+
+    def add_IO_port(self, newIOPort: IOPort) -> None:
         # Check if the the new I/O port is object of class IOPort
         if (not isinstance(newIOPort, IOPort)):
             raise TypeError("Object is not an I/O Port")
 
-        self.__ioPorts.append(newIOPort)
+        self._ioParts.append(newIOPort)
 
-    def get_IO_port(self, name:str=None, index:int=None) -> (IOPort|None):
-        if (index == None):
-            for port in self.__ioPorts:
-                if (port.name == name):
-                    return port
-        else:
-            if (index < len(self.__ioPorts)):
-                return self.__ioPorts[index]
+    def get_IO_port(self, name:str=None) -> (IOPort|None):
+        """Returns IO Port with given name"""
+        if not self._ioParts:
+            return None
+
+        for port in self._ioParts:
+            if (port.name == name):
+                return port
 
         return None
 
-    def noof_IO_ports(self):
-        return len(self.__ioPorts)
+    def noof_IO_ports(self) -> int:
+        return len(self._ioParts)
     
     # Components
-    def add_component(self, newComponent: Component):
+    @property
+    def components(self) -> List[Component]:
+        return self._components
+
+    def add_component(self, newComponent: Component) -> None:
         # Check if the the new I/O port is object of class IOPort
         if (not isinstance(newComponent, Component)):
             raise TypeError("Object is not a Component")
 
         #print(newComponent)
-        self.__components.append(newComponent)
+        self._components.append(newComponent)
 
-    def get_component(self, name:str=None, index:int=None) -> (Component|None):
-        if (index == None):
-            for comp in self.__components:
-                if (comp.name == name):
-                    return comp
-        else:
-            if (index < len(self.__components)):
-                return self.__components[index]
-        
+    def get_component(self, name:str=None) -> (Component|None):
+        """Returns Component with given name"""
+        if not self._components:
+            return None
+
+        for comp in self._components:
+            if (comp.name == name):
+                return comp
+
         return None
 
-    def noof_components(self):
-        return len(self.__components)
+    def noof_components(self) -> int:
+        return len(self._components)
 
     # Nets
-    def add_net(self, newNet: Net):
+    @property
+    def nets(self) -> List[Net]:
+        return self._nets
+
+    def add_net(self, newNet: Net) -> None:
         # Check if the the new I/O port is object of class IOPort
         if (not isinstance(newNet, Net)):
             raise TypeError("Object is not a Net")
 
         #print(newNet)
-        self.__nets.append(newNet)
+        self._nets.append(newNet)
 
     def get_net(self, name: str) -> (Net | None):
-        for net in self.__components:
+        """Returns Net with given name"""
+        if not self._nets:
+            return None
+
+        for net in self._components:
             if (net.get_name() == name):
                 return net
         
         return None
 
-    def noof_nets(self):
-        return len(self.__nets)
+    def noof_nets(self) -> int:
+        return len(self._nets)
+# End of class
+
 
 # Class Design
 class Design:
@@ -318,28 +317,35 @@ class Design:
     create_core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
     """
 
-    __name: str = None
-    __core: Core = None
+    _name: str = None
+    """Name of the design"""
+    _comments: str = None
+    _core: Core = None
+
+    def __init__(self, name:str, comments:str) -> None:
+        self._name = name
+        self._comments = comments
 
     def set_name(self, name: str):
         """
         Sets the name of the design
         """
-        self.__name = name
+        self._name = name
 
     def get_name(self):
         """
         Returns the design name
         """
-        return self.__name
+        return self._name
     
     @property
-    def core(self):
-        return self.__core
+    def core(self) -> Core:
+        return self._core
 
     def create_core(self, coreUtil: int, width: float, height: float,
                     aspectRatio: float, xOffset: float, yOffset: float):
         """
         Creates a core with the given specifications
         """
-        self.__core = Core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
+        self._core = Core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
+# End of class
