@@ -4,7 +4,9 @@ from tkinter import Tcl
 
 from design_components import Design
 from gui import GUI
-from parsers import praactical_format_parcer
+from file_io.parsers import practical_format_parcer
+from file_io.parsers import components_location_parser
+from file_io.writers import write_component_positions
 from placement import random_placer
 
 # Class TclInterpreter
@@ -25,9 +27,9 @@ class TclInterpreter:
         # Readline
         "history",
         # Custom commands
-        "list_components", "list_io_ports", "list_rows",
-        "load_design", "place_random", "quit", "read_design",
-        "remove_design", "save_design", "start_gui"
+        "list_components", "list_io_ports", "list_rows", "load_design",
+        "load_components", "place_random", "quit", "read_design",
+        "remove_design", "save_design", "save_components", "start_gui"
         ]
 
     __tcl = None
@@ -54,10 +56,12 @@ class TclInterpreter:
         self.__tcl.createcommand("list_io_ports", self.__list_io_ports)
         self.__tcl.createcommand("list_rows", self.__list_rows)
         self.__tcl.createcommand("load_design", self.__load_design)
+        self.__tcl.createcommand("load_components", self.__load_components)
         self.__tcl.createcommand("place_random", self.__place_random)
         self.__tcl.createcommand("read_design", self.__read_design)
         self.__tcl.createcommand("remove_design", self.__remove_design)
         self.__tcl.createcommand("save_design", self.__save_design)
+        self.__tcl.createcommand("save_components", self.__save_components)
         self.__tcl.createcommand("start_gui", self.__start_gui)
 
     # Completer
@@ -95,6 +99,29 @@ class TclInterpreter:
         self.__print_yellow("Under Construction")
         print("To be used for loading design used on previous run")
 
+    def __load_components(self, *args):
+        commandFormat = "load_components [-h | -f file]"
+        commandDescription = "Reads design from given file"
+
+        if ((len(args) == 1) & (args[0] == "-h")):
+            print(f"{commandFormat}\n{commandDescription}")
+            return
+        elif ((len(args) == 2) & (args[0] == "-f")):
+            if not self.__design:
+                print("There is no design loaded")
+                return
+
+            try:
+                with open(args[1], "r") as file:
+                    success = components_location_parser(file, self.__design)
+            except IOError:
+                print("There is no file: %s" % (args[1]))
+            
+            if not success: print("Failure")
+            else: print("Success")
+        else:
+            raise TclError
+
     def __place_random(self, *args):
         res = random_placer(self.__design.core)
         if res:
@@ -105,9 +132,9 @@ class TclInterpreter:
     def __read_design(self, *args):
         commandFormat = "read_design [-h | -f file]"
         commandDescription = "Reads design from given file"
-        
+
         if ((len(args) == 1) & (args[0] == "-h")):
-            print(commandFormat + "\n" + commandDescription)
+            print(f"{commandFormat}\n{commandDescription}")
             return
         elif ((len(args) == 2) & (args[0] == "-f")):
             if self.__design:
@@ -116,7 +143,7 @@ class TclInterpreter:
 
             try:
                 with open(args[1], "r") as file:
-                    newDesign = praactical_format_parcer(file)
+                    newDesign = practical_format_parcer(file)
             except IOError:
                 print("There is no file: %s" % (args[1]))
             
@@ -139,12 +166,32 @@ class TclInterpreter:
         self.__print_yellow("Under Construction")
         print("To be used for saving design for future runs")
 
+    def __save_components(self, *args):
+        commandFormat = "save_components [-h | -f file]"
+        commandDescription = "Saves component positions to given file"
+
+        if ((len(args) == 1) & (args[0] == "-h")):
+            print(f"{commandFormat}\n{commandDescription}")
+            return
+        elif ((len(args) == 2) & (args[0] == "-f")):
+            if not self.__design:
+                print("Design is not loaded")
+                return
+
+            with open(args[1], "w") as file:
+                write_component_positions(file, self.__design.name,
+                                        self.__design.core.components)
+        else:
+            raise TclError
+
+
     def __start_gui(self):
         self.__gui = GUI("Router", self.__design)
 
         self.__gui.mainloop()
         None
 
+    # Interpreter
     def interpreter(self):
         self.__initialize_interpreter()
         self.__create_Tcl_commands()

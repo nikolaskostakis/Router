@@ -1,4 +1,4 @@
-from design_components import Design
+#from design_components import Design
 from tcl_interpreter import TclInterpreter
 
 class Router:

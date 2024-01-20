@@ -139,7 +139,10 @@ class Component(RectangleDesignElement):
         self._timingType = timingType
 
     def __repr__(self) -> None:
-        return "Component: %s " % (self._name)
+        rep_str = f"Component: {self.name} Cell_Type: {self._type} " \
+                  f"Cell_Timing_Type: {self._timingType} " \
+                  f"Location: {self._x} {self._y}"
+        return rep_str
 # End of class
 
 
@@ -326,16 +329,9 @@ class Design:
         self._name = name
         self._comments = comments
 
-    def set_name(self, name: str):
-        """
-        Sets the name of the design
-        """
-        self._name = name
-
-    def get_name(self):
-        """
-        Returns the design name
-        """
+    @property
+    def name(self):
+        """Returns the design name"""
         return self._name
     
     @property

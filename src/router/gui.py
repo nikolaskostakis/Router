@@ -1,5 +1,6 @@
 from tkinter import Tk
 from tkinter import Canvas
+
 from design_components import Design
 
 class GUI(Tk):
@@ -53,13 +54,16 @@ class GUI(Tk):
 
             self._canvas.create_rectangle(x, y, (width+x), (height+y),
                                           outline="blue")
+            self._canvas.create_text((x + (width / 2)), (y + (height / 2)),
+                                     text=self._design.core.components[i].name,
+                                     fill="blue", width=width)
 
     def __draw_core(self):
         self._canvas = Canvas(self,width = self._width,
                                height = self._height)
 
         if (self._design == None):
-            self._canvas.create_text(300, 250,
+            self._canvas.create_text((self._width / 2), (self._height / 2),
                                       text = "There is no design loaded",
                                       fill = "black")
             self._canvas.pack()
