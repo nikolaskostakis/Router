@@ -1,7 +1,7 @@
 from io import TextIOWrapper
 from typing import List
 
-from design_components import Component
+from structures.design_components import Component
 
 HASH_LINE = "###############################################################\n"
 

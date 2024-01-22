@@ -1,11 +1,11 @@
 import re
 from io import TextIOWrapper
 
-from design_components import Design
-from design_components import Row
-from design_components import IOPort
-from design_components import Component
-from design_components import Net
+from structures.design_components import Design
+from structures.design_components import Row
+from structures.design_components import IOPort
+from structures.design_components import Component
+from structures.design_components import Net
 
 HASH_LINE = "###############################################################"
 
@@ -270,7 +270,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
 
             # If there are connections to this port
             source = design.core.get_IO_port(splits[1])
-            newNet = _create_net(source, splits[3:(len(splits) - 1)])
+            newNet = _create_net(source, splits[3:(len(splits))])
             design.core.add_net(newNet)
 
             # Fetch next line
@@ -296,7 +296,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
             name = splits[1]
             
             source = _create_component(name)
-            newNet = _create_net(source, splits[3:(len(splits) - 1)])
+            newNet = _create_net(source, splits[3:(len(splits))])
             design.core.add_net(newNet)
 
             line = file.readline().rstrip()

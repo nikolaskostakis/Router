@@ -5,10 +5,10 @@ Module containing functions for placement
 import random
 from typing import List
 
-from design_components import Core
-from design_components import Component
+from structures.design_components import Core
+from structures.design_components import Component
 
-MAX_RANDOM_TRIES = 100
+MAX_RANDOM_TRIES = 100000
 
 def random_placer(core: Core) -> bool:
     """
@@ -56,6 +56,8 @@ def random_placer(core: Core) -> bool:
                 break
 
         if not placed:
+            index = core.components.index(comp)
+            print(f"Failed at {index + 1}/{core.noof_components()}")
             placedComponents.clear()
             return False
     

@@ -6,3 +6,4 @@
 ## Required Packages
 - tkinter
 - pyreadline
+- numpy

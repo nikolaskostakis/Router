@@ -107,14 +107,28 @@ class IOPort(BaseDesignElement):
     # Private data
     _side: str = None
     """Side of the core where port is"""
+    _bin: tuple[int,int] = None
+    """Bin where the port is"""
 
     def __init__(self, name:str, x:float, y:float, side:str) -> None:
         super().__init__(name, x, y)
         self._side = side
 
     def __repr__(self) -> None:
-        return "IO: %s Location: %.3f %.3f %s SIDE" \
-                % (self._name, self._x, self._y, self._side)
+        repr_str = f"IO: {self._name} Location: {self._x:.3f} {self._y:.3f}" \
+                   f" {self._side} SIDE" 
+        if self._bin:
+            rep_str += f" Bin: {self._bin}"
+        return repr_str
+    
+    @property
+    def bin(self) -> tuple[int, int]:
+        """"""
+        return self._bin
+    
+    @bin.setter
+    def bin(self, newBin) -> None:
+        self._bin = newBin
 # End of class
 
 
@@ -127,6 +141,9 @@ class Component(RectangleDesignElement):
     """Component Width from older praactical format inputs"""
     OLD_PF_COMP_HEIGHT = 0.576
     """Component Height from older praactical format inputs"""
+
+    _bin: tuple[int,int] = None
+    """Bin where the component is"""
 
     _type: str = None
     _timingType: str = None
@@ -141,8 +158,19 @@ class Component(RectangleDesignElement):
     def __repr__(self) -> None:
         rep_str = f"Component: {self.name} Cell_Type: {self._type} " \
                   f"Cell_Timing_Type: {self._timingType} " \
-                  f"Location: {self._x} {self._y}"
+                  f"Location: {self._x:.3f} {self._y:.3f}"
+        if self._bin:
+            rep_str += f" Bin: {self._bin}"
         return rep_str
+    
+    @property
+    def bin(self) -> tuple[int, int]:
+        """"""
+        return self._bin
+    
+    @bin.setter
+    def bin(self, newBin) -> None:
+        self._bin = newBin
 # End of class
 
 
@@ -154,23 +182,32 @@ class Net:
 
     _name: str = None
 
-    __source: (IOPort | Component)= None
-    __drain: List[IOPort | Component] = []
+    _source: (IOPort | Component)= None
+    _drain: List[IOPort | Component] = []
 
     def __init__(self, name:str, source:(IOPort|Component),
                  drain:List[IOPort|Component]):
         self._name = name
-        self.__source = source
-        self.__drain = drain
+        self._source = source
+        self._drain = drain
 
-    def __str__(self):
-        pstr = "Net: %s Source: %s Drain: " % (self._name, self.__source)
-        pstr += ' '.join(map(str, self.__drain))
-        return pstr
+    def __repr__(self):
+        drain = " ".join([d.name for d in self._drain])
+        rep_str = f"Net: {self._name} Source: {self._source.name}" \
+                  f" Drain: {drain}"
+        return rep_str
 
     def get_name(self):
         """Returns the name of the Net"""
         return self._name
+
+    @property
+    def source(self):
+        return self._source
+
+    @property
+    def drain(self):
+        return self._drain
 # End of class
 
 
