@@ -1,5 +1,4 @@
 from io import TextIOWrapper
-from typing import List
 
 from structures.design_components import Component
 
@@ -7,7 +6,7 @@ HASH_LINE = "###############################################################\n"
 
 def write_component_positions(file:TextIOWrapper,
                               designName:str,
-                              components:List[Component]
+                              components:list[Component]
                               ) -> None:
     """Writes components and their coordinates into file"""
 

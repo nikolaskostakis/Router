@@ -1,4 +1,8 @@
-#from design_components import Design
+"""
+"""
+
+import argparse
+
 from tcl_interpreter import TclInterpreter
 
 class Router:
@@ -6,24 +10,19 @@ class Router:
     Top class
     """
 
-    interp: TclInterpreter = None
+    _interp: TclInterpreter = None
 
     def __init__(self):
-        None
+        self._interp = TclInterpreter()
+    # End of method
 
-    def start_interpreter(self):
-        self.interp = TclInterpreter()
-        self.interp.interpreter()
-
-    def main(self):
+    def run(self):
         """
         """
-        if (__name__ != "__main__"):
-            print("This method is to be used as main function " \
-                  "for standalone execution of Router\n" \
-                  "Cannot be used otherwise")
+        self._interp.interpreter()
+    # End of method
+# End of class
 
-        self.start_interpreter()
-
-router = Router()
-router.main()
+if (__name__ == "__main__"):
+    router = Router()
+    router.run()

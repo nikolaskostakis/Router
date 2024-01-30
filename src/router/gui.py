@@ -6,7 +6,6 @@ from tkinter import Button
 import time
 
 from structures.design_components import Design
-from structures.bins import Bins
 
 class GUI(Tk):
 
@@ -16,7 +15,6 @@ class GUI(Tk):
     _buttonsFrame: Frame = None
 
     _design: Design = None
-    _bins: Bins = None
 
     _width = 1010
     _height = 860
@@ -30,15 +28,13 @@ class GUI(Tk):
     show_nets = False
     show_bins = False
 
-    def __init__(self, screenName:(str|None) = None, design: Design = None,
-                 bins:Bins = None):
+    def __init__(self, screenName:(str|None) = None, design: Design = None):
         super().__init__(screenName)
 
         self.title(screenName)
         self.minsize(self._width,self._height)
 
         self._design = design
-        self._bins = bins
     # End of method
 
     def __draw_rows(self):
@@ -132,10 +128,10 @@ class GUI(Tk):
     # End of method
 
     def _draw_bins(self):
-        if (not self._bins): return
+        if (not self._design.bins): return
 
         if self.show_bins:
-            binsX, binsY = self._bins.size
+            binsY, binsX = self._design.bins.size
 
             coreWidth, coreHeight = self._design.core.get_dimentions()
             coreWidth += 2 * self._design.core.x_offset
@@ -225,7 +221,7 @@ class GUI(Tk):
     # End of method
 
     def _draw_bins_info(self):
-        if (not self._bins):
+        if (not self._design.bins):
             Label(self._binsFrame,text="There are no bins").grid(
                 row=0, column=0,sticky="N")
             return
@@ -233,7 +229,8 @@ class GUI(Tk):
         Label(self._binsFrame, text="Bins").grid(
             row=0, column=0, columnspan=2, sticky="N")
         Label(self._binsFrame, text="Size").grid(row=1,column=0)
-        Label(self._binsFrame, text=f"{self._bins.size}").grid(row=1,column=1)
+        Label(self._binsFrame, text=f"{self._design.bins.size}").grid(row=1,
+                                                                      column=1)
     # End of method
 
     def _draw_buttons(self):

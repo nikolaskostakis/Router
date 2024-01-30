@@ -3,7 +3,6 @@ Module containing functions for placement
 """
 
 import random
-from typing import List
 
 from structures.design_components import Core
 from structures.design_components import Component
@@ -18,7 +17,7 @@ def random_placer(core: Core) -> bool:
     Function does not check for mixed-cell-heights
     """
 
-    placedComponents: List[Component] = []
+    placedComponents: list[Component] = []
     """Temporary queue, used for already placed components"""
 
     def _placement_trial(x:float, y:float, width:float) -> bool:

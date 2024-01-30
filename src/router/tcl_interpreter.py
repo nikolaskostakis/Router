@@ -3,12 +3,12 @@ from tkinter import TclError
 from tkinter import Tcl
 
 from structures.design_components import Design
-from structures.bins import Bins
 from gui import GUI
 from file_io.parsers import practical_format_parcer
 from file_io.parsers import components_location_parser
 from file_io.writers import write_component_positions
-from placement import random_placer
+from place_and_route.placement import random_placer
+from place_and_route.routing import maze_routing
 
 # Class TclInterpreter
 class TclInterpreter:
@@ -37,22 +37,27 @@ class TclInterpreter:
         "bins_info", "create_bins", "remove_bins",
         # Placement
         "place_random",
+        # Routing
+        "maze_routing"
         # GUI
-        "start_gui"
+        "start_gui",
+        # Testing
+        "test"
         ]
 
     _tcl = None
 
     _design: Design = None
-    _bins: Bins = None
     _gui: GUI = None
 
     def __init__(self):
         self._commands.sort()
-        None
+        self.__initialize_interpreter()
+        self.__create_Tcl_commands()
+    # End of method
 
-    def __print_red(self, msg): print("\x1B[31m" + msg + "\x1B[0m")
-    def __print_yellow(self, msg): print("\x1B[33m" + msg + "\x1B[0m")
+    def __print_red(self, msg): print(f"\x1B[31m{msg}\x1B[0m")
+    def __print_yellow(self, msg): print(f"\x1B[33m{msg}\x1B[0m")
 
     # Interpreter initialization
     def __initialize_interpreter(self):
@@ -60,6 +65,7 @@ class TclInterpreter:
 
         readline.parse_and_bind("tab: complete")
         readline.set_completer(self.__completer)
+    # End of method
 
     # Tcl Command creation
     def __create_Tcl_commands(self):
@@ -71,6 +77,7 @@ class TclInterpreter:
         self._tcl.createcommand("list_rows", self._list_rows)
         self._tcl.createcommand("load_design", self.__load_design)
         self._tcl.createcommand("load_components", self.__load_components)
+        self._tcl.createcommand("maze_routing", self._maze_routing)
         self._tcl.createcommand("place_random", self.__place_random)
         self._tcl.createcommand("read_design", self.__read_design)
         self._tcl.createcommand("remove_bins", self._remove_bins)
@@ -78,19 +85,23 @@ class TclInterpreter:
         self._tcl.createcommand("save_design", self.__save_design)
         self._tcl.createcommand("save_components", self.__save_components)
         self._tcl.createcommand("start_gui", self.__start_gui)
+        self._tcl.createcommand("test", self._test)
+    # End of method
 
     # Completer
     def __completer(self, text, state):
         # TODO: Expand completer with files and command flags (optional)
         results = [x for x in self._commands if x.startswith(text)] + [None]
         return results[state]
+    # End of method
 
     # Tcl Commands
     def _bins_info(self):
-        if not self._bins:
+        if not self._design.bins:
             print("There are no bins created")
         else:
-            print(self._bins)
+            print(self._design.bins)
+    # End of method
 
     def _create_bins(self, *args):
         commandFormat = "create_bins [-h | -size width height]"
@@ -100,7 +111,7 @@ class TclInterpreter:
             print(f"{commandFormat}\n{commandDescription}")
             return
         elif ((len(args) == 3) & (args[0] == "-size")):
-            if self._bins:
+            if self._design.bins:
                 print("There are already bins created")
                 return
 
@@ -111,10 +122,11 @@ class TclInterpreter:
                 print("Dimentions for bins are ment to be integers")
                 raise TclError
             
-            self._bins = Bins(width, height)
-            self._bins.determine_bins(self._design.core)
+            self._design.create_bins(width, height)
+            self._design.update_bins()
         else:
             raise TclError
+    # End of method
 
     def _list_components(self, *args):
         if not self._design:
@@ -123,6 +135,7 @@ class TclInterpreter:
         
         for comp in self._design.core.components:
             print(comp)
+    # End of method
 
     def _list_io_ports(self, *args):
         if not self._design:
@@ -131,6 +144,7 @@ class TclInterpreter:
         
         for ioPort in self._design.core.ioPorts:
             print(ioPort)
+    # End of method
 
     def _list_nets(self, *args):
         if not self._design:
@@ -139,6 +153,7 @@ class TclInterpreter:
         
         for net in self._design.core.nets:
             print(net)
+    # End of method
 
     def _list_rows(self, *args):
         if not self._design:
@@ -147,10 +162,12 @@ class TclInterpreter:
         
         for row in self._design.core.rows:
             print(row)
+    # End of method
 
     def __load_design(self, *args):
         self.__print_yellow("Under Construction")
         print("To be used for loading design used on previous run")
+    # End of method
 
     def __load_components(self, *args):
         commandFormat = "load_components [-h | -f file]"
@@ -174,6 +191,19 @@ class TclInterpreter:
             else: print("Success")
         else:
             raise TclError
+    # End of method
+
+    def _maze_routing(self):
+        if not self._design:
+            print("There is no design loaded")
+            return
+
+        if not self._design.bins:
+            print("There are no bins for routing to be done")
+            return
+
+        maze_routing(self._design)
+    # End of method
 
     def __place_random(self, *args):
         res = random_placer(self._design.core)
@@ -181,6 +211,7 @@ class TclInterpreter:
             print("Success")
         else:
             print("Failure")
+    # End of method
 
     def __read_design(self, *args):
         commandFormat = "read_design [-h | -f file]"
@@ -207,10 +238,11 @@ class TclInterpreter:
                 print("Success")
         else:
             raise TclError
+    # End of method
 
     def _remove_bins(self):
-        if (self._bins != None):
-            del self._bins
+        if (self._design.bins != None):
+            del self._design.bins
             print("Bins Removed")
         else:
             print("There are no bins to be removed")
@@ -221,10 +253,12 @@ class TclInterpreter:
             print("Design Removed")
         else:
             print("There is no design to be removed")
+    # End of method
 
     def __save_design(self, *args):
         self.__print_yellow("Under Construction")
         print("To be used for saving design for future runs")
+    # End of method
 
     def __save_components(self, *args):
         commandFormat = "save_components [-h | -f file]"
@@ -243,22 +277,35 @@ class TclInterpreter:
                                         self._design.core.components)
         else:
             raise TclError
-
+    # End of method
 
     def __start_gui(self):
-        self._gui = GUI("Router", self._design, self._bins)
+        self._gui = GUI("Router", self._design)
 
         self._gui.mainloop()
-        None
+    # End of method
+
+    def _test(self, *args):
+        """Tcl command used for testing features"""
+
+        print("Hello")
+
+        #net = self._design.core.get_net(args[0])
+        #if not net:
+        #    print("Use valid name")
+        #    raise TclError
+        #for net in self._design.core.nets:
+        #    self._bins.maze_routing(net)
+        maze_routing(self._design)
+    # End of method
 
     # Interpreter
     def interpreter(self):
-        self.__initialize_interpreter()
-        self.__create_Tcl_commands()
+        """Interpreter"""
 
         while (True):
-            line = input('prompt> ')
-            if (line == 'quit'):
+            line = input("\x1B[36mprompt> \x1B[0m")
+            if (line == "quit"):
                 print("Goodbye!")
                 break
             # Readline history, not the Tcl Command
@@ -274,6 +321,8 @@ class TclInterpreter:
                 self.__print_red("Invalid Tcl command or options on one")
 
             readline.add_history(line)
+        self._test()
+        self._bins_info()
     # End of method
 
     # For Design

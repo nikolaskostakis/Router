@@ -1,4 +1,9 @@
-from typing import List
+"""
+Module housing the design components used for the router
+"""
+
+import numpy as np
+from numpy import ndarray
 
 # Class BaseDesignElement
 class BaseDesignElement:
@@ -118,7 +123,7 @@ class IOPort(BaseDesignElement):
         repr_str = f"IO: {self._name} Location: {self._x:.3f} {self._y:.3f}" \
                    f" {self._side} SIDE" 
         if self._bin:
-            rep_str += f" Bin: {self._bin}"
+            repr_str += f" Bin: {self._bin}"
         return repr_str
     
     @property
@@ -183,10 +188,10 @@ class Net:
     _name: str = None
 
     _source: (IOPort | Component)= None
-    _drain: List[IOPort | Component] = []
+    _drain: list[IOPort | Component] = []
 
     def __init__(self, name:str, source:(IOPort|Component),
-                 drain:List[IOPort|Component]):
+                 drain:list[IOPort|Component]):
         self._name = name
         self._source = source
         self._drain = drain
@@ -197,8 +202,10 @@ class Net:
                   f" Drain: {drain}"
         return rep_str
 
-    def get_name(self):
-        """Returns the name of the Net"""
+    # Name
+    @property
+    def name(self) -> str:
+        """Returns the name"""
         return self._name
 
     @property
@@ -220,10 +227,10 @@ class Core(RectangleDesignElement):
     _xOffset: float = None
     _yOffset: float = None
 
-    _rows: List[Row] = []
-    _ioParts: List[IOPort] = []
-    _components: List[Component] = []
-    _nets: List[Net] = []
+    _rows: list[Row] = []
+    _ioParts: list[IOPort] = []
+    _components: list[Component] = []
+    _nets: list[Net] = []
 
     def __init__(self, coreUtil:int, width:float, height:float,
                  aspectRatio:float, xOffset:float, yOffset:float):
@@ -251,7 +258,7 @@ class Core(RectangleDesignElement):
 
     # Rows
     @property
-    def rows(self) -> List[Row]:
+    def rows(self) -> list[Row]:
         return self._rows
 
     def add_row(self, newRow: Row) -> None:
@@ -266,7 +273,7 @@ class Core(RectangleDesignElement):
 
     # I/O ports
     @property
-    def ioPorts(self) -> List[IOPort]:
+    def ioPorts(self) -> list[IOPort]:
         return self._ioParts
 
     def add_IO_port(self, newIOPort: IOPort) -> None:
@@ -292,7 +299,7 @@ class Core(RectangleDesignElement):
     
     # Components
     @property
-    def components(self) -> List[Component]:
+    def components(self) -> list[Component]:
         return self._components
 
     def add_component(self, newComponent: Component) -> None:
@@ -319,7 +326,7 @@ class Core(RectangleDesignElement):
 
     # Nets
     @property
-    def nets(self) -> List[Net]:
+    def nets(self) -> list[Net]:
         return self._nets
 
     def add_net(self, newNet: Net) -> None:
@@ -335,14 +342,49 @@ class Core(RectangleDesignElement):
         if not self._nets:
             return None
 
-        for net in self._components:
-            if (net.get_name() == name):
+        for net in self._nets:
+            if (net.name == name):
                 return net
         
         return None
 
     def noof_nets(self) -> int:
         return len(self._nets)
+# End of class
+
+
+# Class Bins
+class Bins:
+    """ A class used to represent the bins used for routing"""
+
+    _bins:ndarray = None
+    """The array of bins"""
+    
+    _size:tuple[int,int] = None
+    """The size of the bins array (y,x)"""
+
+    def __init__(self, width:int, height:int) -> None:
+        self._size = (height, width)
+        self._bins = np.zeros(self._size)
+
+    def __repr__(self) -> str:
+        return f"Bins {self.size}:\n{self._bins}"
+    
+    def __getitem__(self, index: tuple[int, int]) -> ndarray[int, int]:
+        return self._bins[index]
+
+    def __setitem__(self, index, newValue):
+        self._bins[index] = newValue
+
+    @property
+    def size(self) -> tuple[int, int]:
+        "Size of bins array"
+        return self._size
+
+    @property
+    def bins(self) -> ndarray:
+        "Bins array"
+        return self._bins
 # End of class
 
 
@@ -360,7 +402,11 @@ class Design:
     _name: str = None
     """Name of the design"""
     _comments: str = None
+
     _core: Core = None
+    """Design Core"""
+    _bins: Bins = None
+    """Routing Bins"""
 
     def __init__(self, name:str, comments:str) -> None:
         self._name = name
@@ -374,11 +420,39 @@ class Design:
     @property
     def core(self) -> Core:
         return self._core
+    
+    @property
+    def bins(self) -> Bins:
+        return self._bins
+
+    @bins.deleter
+    def bins(self) -> None:
+        del self._bins
 
     def create_core(self, coreUtil: int, width: float, height: float,
-                    aspectRatio: float, xOffset: float, yOffset: float):
-        """
-        Creates a core with the given specifications
-        """
-        self._core = Core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
+                    aspectRatio: float, xOffset: float, yOffset: float) -> None:
+        """Creates a core with the given specifications"""
+        self._core = Core(coreUtil, width, height,
+                          aspectRatio, xOffset, yOffset)
+
+    def create_bins(self, width:int, height:int) -> None:
+        """Creates an array of bins with the given dimentions"""
+        self._bins = Bins(width, height)
+
+    def update_bins(self):
+        binsSize = self._bins.size
+        binWidth = (self._core.width + 2 *self._core.x_offset) / binsSize[0]
+        binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[1]
+
+        # For the IO Ports
+        for port in self._core.ioPorts:
+            x,y = port.get_coordinates()
+            bin = (int(y/binHeight), int(x/binWidth))
+            port.bin = bin
+        # For the Components
+        for comp in self._core.components:
+            x,y = comp.get_coordinates()
+            w,h = comp.get_dimentions()
+            bin = (int((y + h/2)/binHeight), int((x + w/2)/binWidth))
+            comp.bin = bin
 # End of class
