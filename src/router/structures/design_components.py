@@ -20,36 +20,43 @@ class BaseDesignElement:
         self._name = name
         self._x = x
         self._y = y
+    # End of method
 
     # Name
     @property
     def name(self) -> str:
         """Returns the name"""
         return self._name
+    # End of method
 
     # Coordinates
     @property
     def x(self) -> float:
         """Returns x-coordinate"""
         return self._x
+    # End of method
 
     @x.setter
     def x(self, newX:float) -> None:
         """Assign new x-coordinate"""
         self._x = newX
+    # End of method
 
     @property
     def y(self) -> float:
         """Returns y-coordinate"""
         return self._y
+    # End of method
     
     @y.setter
     def y(self, newY):
         self._y = newY
+    # End of method
 
     def get_coordinates(self) -> tuple[float, float]:
         """Returns the coordinates (x,y)"""
         return self._x, self._y
+    # End of method
 # End of class
 
 
@@ -67,21 +74,25 @@ class RectangleDesignElement(BaseDesignElement):
         super().__init__(name, x, y)
         self._width = width
         self._height = height
+    # End of method
 
     # Dimensions
     @property
     def width(self) -> float:
         """Returns width"""
         return self._width
+    # End of method
 
     @property
     def height(self) -> float:
         """Returns heigh"""
         return self._height
+    # End of method
 
     def get_dimentions(self) -> tuple[float, float]:
         """Returns dimentions (width, height)"""
         return self._width, self._height
+    # End of method
 # End of class
 
 
@@ -96,12 +107,14 @@ class Row(RectangleDesignElement):
     def __init__(self, name:str, type:str, x:float, y:float,
                  width: float, height: float) -> None:
         super().__init__(name, x, y, width, height)
-        self._type = type 
+        self._type = type
+    # End of method
 
     def __repr__(self) -> None:
-        return "Row: %s Type: %s Location: %.3f %.3f Width/Height: %.3f %.3f" \
-            % (self._name, self._type, self._x, self._y,
-               self._width, self._height)
+        return f"Row: {self._name} Type: {self._type} " \
+               f"Location: {self._x:.3f} {self._y:.3f} " \
+               f"Width/Height: {self._width:.3f} {self._height:.3f}" 
+    # End of method
 # End of class
 
 
@@ -118,6 +131,7 @@ class IOPort(BaseDesignElement):
     def __init__(self, name:str, x:float, y:float, side:str) -> None:
         super().__init__(name, x, y)
         self._side = side
+    # End of method
 
     def __repr__(self) -> None:
         repr_str = f"IO: {self._name} Location: {self._x:.3f} {self._y:.3f}" \
@@ -125,15 +139,18 @@ class IOPort(BaseDesignElement):
         if self._bin:
             repr_str += f" Bin: {self._bin}"
         return repr_str
+    # End of method
     
     @property
     def bin(self) -> tuple[int, int]:
         """"""
         return self._bin
+    # End of method
     
     @bin.setter
     def bin(self, newBin) -> None:
         self._bin = newBin
+    # End of method
 # End of class
 
 
@@ -159,6 +176,7 @@ class Component(RectangleDesignElement):
         super().__init__(name, 0, 0, width, heigh)
         self._type = type
         self._timingType = timingType
+    # End of method
 
     def __repr__(self) -> None:
         rep_str = f"Component: {self.name} Cell_Type: {self._type} " \
@@ -167,15 +185,18 @@ class Component(RectangleDesignElement):
         if self._bin:
             rep_str += f" Bin: {self._bin}"
         return rep_str
-    
+    # End of method
+
     @property
     def bin(self) -> tuple[int, int]:
         """"""
         return self._bin
+    # End of method
     
     @bin.setter
     def bin(self, newBin) -> None:
         self._bin = newBin
+    # End of method
 # End of class
 
 
@@ -195,26 +216,31 @@ class Net:
         self._name = name
         self._source = source
         self._drain = drain
+    # End of method
 
     def __repr__(self):
         drain = " ".join([d.name for d in self._drain])
-        rep_str = f"Net: {self._name} Source: {self._source.name}" \
-                  f" Drain: {drain}"
+        rep_str = f"Net: {self._name} Source: {self._source.name} " \
+                  f"Drain: {drain}"
         return rep_str
+    # End of method
 
     # Name
     @property
     def name(self) -> str:
         """Returns the name"""
         return self._name
+    # End of method
 
     @property
     def source(self):
         return self._source
+    # End of method
 
     @property
     def drain(self):
         return self._drain
+    # End of method
 # End of class
 
 
@@ -239,27 +265,31 @@ class Core(RectangleDesignElement):
         self._aspectRatio = aspectRatio
         self._xOffset = xOffset
         self._yOffset = yOffset
+    # End of method
 
     def __repr__(self):
-        return "Core Utilisation: %2d%%\n" \
-            "Core Width, Height: %.3f, %.3f, Aspect Ratio: %.3f\n" \
-            "Core X, Y Offsets: %.3f, %.3f" \
-            % (self._coreUtil, self._width, self._height,
-               self._aspectRatio, self._xOffset, self._yOffset)
+        return f"Core Utilisation: {self._coreUtil:2d}%\n" \
+               f"Core Width, Height: {self._width:.3f}, {self._height:.3f}, "\
+               f"Aspect Ratio: {self._aspectRatio:.3f}\n" \
+               f"Core X, Y Offsets: {self._xOffset:.3f}, {self._yOffset:.3f}"
+    # End of method
 
     # Offsets
     @property
     def x_offset(self) -> float:
         return self._xOffset
+    # End of method
     
     @property
     def y_offset(self) -> float:
         return self._yOffset
+    # End of method
 
     # Rows
     @property
     def rows(self) -> list[Row]:
         return self._rows
+    # End of method
 
     def add_row(self, newRow: Row) -> None:
         # Check if the the new row is object of class Row
@@ -267,14 +297,17 @@ class Core(RectangleDesignElement):
             raise TypeError("Object is not a Row")
 
         self._rows.append(newRow)
+    # End of method
 
     def noof_rows(self) -> int:
         return len(self._rows)
+    # End of method
 
     # I/O ports
     @property
     def ioPorts(self) -> list[IOPort]:
         return self._ioParts
+    # End of method
 
     def add_IO_port(self, newIOPort: IOPort) -> None:
         # Check if the the new I/O port is object of class IOPort
@@ -282,6 +315,7 @@ class Core(RectangleDesignElement):
             raise TypeError("Object is not an I/O Port")
 
         self._ioParts.append(newIOPort)
+    # End of method
 
     def get_IO_port(self, name:str=None) -> (IOPort|None):
         """Returns IO Port with given name"""
@@ -293,9 +327,11 @@ class Core(RectangleDesignElement):
                 return port
 
         return None
+    # End of method
 
     def noof_IO_ports(self) -> int:
         return len(self._ioParts)
+    # End of method
     
     # Components
     @property
@@ -307,8 +343,8 @@ class Core(RectangleDesignElement):
         if (not isinstance(newComponent, Component)):
             raise TypeError("Object is not a Component")
 
-        #print(newComponent)
         self._components.append(newComponent)
+    # End of method
 
     def get_component(self, name:str=None) -> (Component|None):
         """Returns Component with given name"""
@@ -320,22 +356,25 @@ class Core(RectangleDesignElement):
                 return comp
 
         return None
+    # End of method
 
     def noof_components(self) -> int:
         return len(self._components)
+    # End of method
 
     # Nets
     @property
     def nets(self) -> list[Net]:
         return self._nets
+    # End of method
 
     def add_net(self, newNet: Net) -> None:
         # Check if the the new I/O port is object of class IOPort
         if (not isinstance(newNet, Net)):
             raise TypeError("Object is not a Net")
 
-        #print(newNet)
         self._nets.append(newNet)
+    # End of method
 
     def get_net(self, name: str) -> (Net | None):
         """Returns Net with given name"""
@@ -347,9 +386,11 @@ class Core(RectangleDesignElement):
                 return net
         
         return None
+    # End of method
 
     def noof_nets(self) -> int:
         return len(self._nets)
+    # End of method
 # End of class
 
 
@@ -366,25 +407,31 @@ class Bins:
     def __init__(self, width:int, height:int) -> None:
         self._size = (height, width)
         self._bins = np.zeros(self._size)
+    # End of method
 
     def __repr__(self) -> str:
         return f"Bins {self.size}:\n{self._bins}"
+    # End of method
     
     def __getitem__(self, index: tuple[int, int]) -> ndarray[int, int]:
         return self._bins[index]
+    # End of method
 
     def __setitem__(self, index, newValue):
         self._bins[index] = newValue
+    # End of method
 
     @property
     def size(self) -> tuple[int, int]:
         "Size of bins array"
         return self._size
+    # End of method
 
     @property
     def bins(self) -> ndarray:
         "Bins array"
         return self._bins
+    # End of method
 # End of class
 
 
@@ -411,33 +458,49 @@ class Design:
     def __init__(self, name:str, comments:str) -> None:
         self._name = name
         self._comments = comments
+    # End of method
+
+    def __repr__(self) -> str:
+        repr = f"Design: {self._name}\n{self._comments}\n{self.core}\n"
+        if self._bins:
+            repr += f"{self._bins}"
+        else:
+            repr += f"No bins"
+        return repr
+    # End of method
 
     @property
     def name(self):
         """Returns the design name"""
         return self._name
+    # End of method
     
     @property
     def core(self) -> Core:
         return self._core
+    # End of method
     
     @property
     def bins(self) -> Bins:
         return self._bins
+    # End of method
 
     @bins.deleter
     def bins(self) -> None:
         del self._bins
+    # End of method
 
     def create_core(self, coreUtil: int, width: float, height: float,
                     aspectRatio: float, xOffset: float, yOffset: float) -> None:
         """Creates a core with the given specifications"""
         self._core = Core(coreUtil, width, height,
                           aspectRatio, xOffset, yOffset)
+    # End of method
 
     def create_bins(self, width:int, height:int) -> None:
         """Creates an array of bins with the given dimentions"""
         self._bins = Bins(width, height)
+    # End of method
 
     def update_bins(self):
         binsSize = self._bins.size
@@ -455,4 +518,5 @@ class Design:
             w,h = comp.get_dimentions()
             bin = (int((y + h/2)/binHeight), int((x + w/2)/binWidth))
             comp.bin = bin
+    # End of method
 # End of class

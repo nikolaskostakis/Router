@@ -1,8 +1,7 @@
-from tkinter import Tk
-from tkinter import Canvas
-from tkinter import Frame
-from tkinter import Label
-from tkinter import Button
+"""
+"""
+
+from tkinter import Tk, Canvas, Frame, Label, Button
 import time
 
 from structures.design_components import Design

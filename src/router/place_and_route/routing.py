@@ -1,12 +1,20 @@
 """
 Module
 """
+import logging
+
 import numpy as np
 
+import config
 from structures.design_components import Design
 
+# Logging
+routingLogger = logging.getLogger(__name__)
+routingLogger.setLevel(logging.DEBUG)
+routingLogger.addHandler(config.consoleHandler)
+
 def maze_routing(design: Design) -> None:
-    def propagate_wave():
+    def _propagate_wave():
         
         activeList = []
         visitedList = []
@@ -62,7 +70,7 @@ def maze_routing(design: Design) -> None:
         print(tempBinsArray)
     # End of function
 
-    def backtrace():
+    def _backtrace():
         bt = []
 
         active = drain
@@ -70,7 +78,6 @@ def maze_routing(design: Design) -> None:
         while True:
             if (active in netBins):
                 break
-            print(f"=====> Active {active}, Value {value}")
 
             #NESW
             # North
@@ -78,7 +85,6 @@ def maze_routing(design: Design) -> None:
                 north = ((active[0] - 1), active[1])
                 print(f"north {tempBinsArray[north]}")
                 if (tempBinsArray[north] < value) & (north != drain):
-                    print("Choice")
                     next = north
                     value = tempBinsArray[north]
             # East
@@ -86,7 +92,6 @@ def maze_routing(design: Design) -> None:
                 east = (active[0], (active[1] + 1))
                 print(f"east {tempBinsArray[east]}")
                 if (tempBinsArray[east] < value) & (east != drain):
-                    print("Choice")
                     next = east
                     value = tempBinsArray[east]
             # South
@@ -94,7 +99,6 @@ def maze_routing(design: Design) -> None:
                 south = ((active[0] + 1), active[1])
                 print(f"south {tempBinsArray[south]}")
                 if (tempBinsArray[south] < value) & (south != drain):
-                    print("Choice")
                     next = south
                     value = tempBinsArray[south]
             # West
@@ -102,7 +106,6 @@ def maze_routing(design: Design) -> None:
                 west = (active[0], (active[1] - 1))
                 print(f"west {tempBinsArray[west]}")
                 if (tempBinsArray[west] < value) & (west != drain):
-                    print("Choice")
                     next = west
                     value = tempBinsArray[west]
 
@@ -111,9 +114,8 @@ def maze_routing(design: Design) -> None:
         netBins.extend(bt)
     # End of function
 
-    def distance(bin):
+    def _distance(bin):
         dist = (source[0] - bin[0])**2 + (source[1] - bin[1])**2
-        print(f"Distance: {dist}")
         return dist
     # End of function
 
@@ -125,15 +127,13 @@ def maze_routing(design: Design) -> None:
         source = net.source.bin
         netBins = [source]
         print(net.drain)
-        net.drain.sort(key=lambda dr: distance(dr.bin))
+        net.drain.sort(key=lambda dr: _distance(dr.bin))
         print(net.drain)
 
-        print(netBins)
         for endpoint in net.drain:
             drain = endpoint.bin
-            print(f"Drain: {drain}")
-            propagate_wave()
-            backtrace()
+            _propagate_wave()
+            _backtrace()
 
             tempBinsArray.fill(0)
 
@@ -141,5 +141,6 @@ def maze_routing(design: Design) -> None:
         
         for change in netBins:
             design.bins[change] += 1
-
+    
+    routingLogger.debug("Routing completed")
 # End of function

@@ -1,7 +1,14 @@
-import readline
-from tkinter import TclError
-from tkinter import Tcl
+"""
+Module containing the TCL Interpreter
+"""
 
+import os
+import logging
+
+import readline
+from tkinter import Tk, Tcl, TclError
+
+import config
 from structures.design_components import Design
 from gui import GUI
 from file_io.parsers import practical_format_parcer
@@ -9,6 +16,17 @@ from file_io.parsers import components_location_parser
 from file_io.writers import write_component_positions
 from place_and_route.placement import random_placer
 from place_and_route.routing import maze_routing
+
+# Logging
+interfaceLogger = logging.getLogger(__name__)
+interfaceLogger.setLevel(logging.DEBUG)
+interfaceLogger.addHandler(config.consoleHandler)
+
+# Colors
+CYAN   = "\x1B[36m"
+NORMAL = "\x1B[0m"
+RED =    "\x1B[31m"
+YELLOW = "\x1B[33m"
 
 # Class TclInterpreter
 class TclInterpreter:
@@ -18,78 +36,85 @@ class TclInterpreter:
     Methods
     -------
     interpreter()
-
+    script_interpreter(script)
     """
 
     _commands = [
         # Tcl Commands
-        "break", "cd", " for", "foreach", "if", 
-        "puts", "pwd", "return", "set", "while",
+        "array", "break", "continue", "concat", "cd", "for", "foreach", "if", 
+        "list", "lsort", "puts", "pwd", "return", "set", "source", "while",
         # Readline
         "history",
         # Custom commands
-        "quit",
+        "exit", "quit",
         # Design
         "list_components", "list_io_ports", "list_nets", "list_rows",
         "load_design", "read_design", "remove_design", "save_design",
-        "load_components","save_components",
+        "load_components_coords", "save_components_coords", "design_info",
         # Bins
         "bins_info", "create_bins", "remove_bins",
         # Placement
         "place_random",
         # Routing
-        "maze_routing"
+        "maze_routing",
         # GUI
         "start_gui",
         # Testing
         "test"
         ]
 
-    _tcl = None
+    _tcl: Tk = None
 
     _design: Design = None
     _gui: GUI = None
 
     def __init__(self):
         self._commands.sort()
-        self.__initialize_interpreter()
-        self.__create_Tcl_commands()
+        self._initialize_interpreter()
+        self._create_Tcl_commands()
     # End of method
 
-    def __print_red(self, msg): print(f"\x1B[31m{msg}\x1B[0m")
-    def __print_yellow(self, msg): print(f"\x1B[33m{msg}\x1B[0m")
+    def _print_red(self, msg): print(f"{RED}{msg}{NORMAL}")
+    def _print_yellow(self, msg): print(f"{YELLOW}{msg}{NORMAL}")
 
     # Interpreter initialization
-    def __initialize_interpreter(self):
+    def _initialize_interpreter(self):
         self._tcl = Tcl()
 
         readline.parse_and_bind("tab: complete")
-        readline.set_completer(self.__completer)
+        readline.set_completer(self._completer)
     # End of method
 
     # Tcl Command creation
-    def __create_Tcl_commands(self):
+    def _create_Tcl_commands(self):
         self._tcl.createcommand("bins_info", self._bins_info)
         self._tcl.createcommand("create_bins", self._create_bins)
+        self._tcl.createcommand("design_info", self._design_info)
         self._tcl.createcommand("list_components", self._list_components)
         self._tcl.createcommand("list_io_ports", self._list_io_ports)
         self._tcl.createcommand("list_nets", self._list_nets)
         self._tcl.createcommand("list_rows", self._list_rows)
-        self._tcl.createcommand("load_design", self.__load_design)
-        self._tcl.createcommand("load_components", self.__load_components)
+        self._tcl.createcommand("load_design", self._load_design)
+        self._tcl.createcommand(
+            "load_components_coords",
+            self._load_components_coords
+        )
         self._tcl.createcommand("maze_routing", self._maze_routing)
-        self._tcl.createcommand("place_random", self.__place_random)
-        self._tcl.createcommand("read_design", self.__read_design)
+        self._tcl.createcommand("place_random", self._place_random)
+        self._tcl.createcommand("read_design", self._read_design)
         self._tcl.createcommand("remove_bins", self._remove_bins)
         self._tcl.createcommand("remove_design", self._remove_design)
-        self._tcl.createcommand("save_design", self.__save_design)
-        self._tcl.createcommand("save_components", self.__save_components)
-        self._tcl.createcommand("start_gui", self.__start_gui)
+        self._tcl.createcommand("save_design", self._save_design)
+        self._tcl.createcommand(
+            "save_components_coords",
+            self._save_components_coords
+        )
+        self._tcl.createcommand("start_gui", self._start_gui)
         self._tcl.createcommand("test", self._test)
     # End of method
 
     # Completer
-    def __completer(self, text, state):
+    def _completer(self, text, state):
         # TODO: Expand completer with files and command flags (optional)
         results = [x for x in self._commands if x.startswith(text)] + [None]
         return results[state]
@@ -98,144 +123,162 @@ class TclInterpreter:
     # Tcl Commands
     def _bins_info(self):
         if not self._design.bins:
-            print("There are no bins created")
+            interfaceLogger.info("There are no bins created")
         else:
-            print(self._design.bins)
+            interfaceLogger.info(self._design.bins)
     # End of method
 
-    def _create_bins(self, *args):
+    def _create_bins(self, *args) -> bool:
         commandFormat = "create_bins [-h | -size width height]"
         commandDescription = "Creates aray of bins with given dimentions"
 
         if ((len(args) == 1) & (args[0] == "-h")):
             print(f"{commandFormat}\n{commandDescription}")
-            return
+            return True
         elif ((len(args) == 3) & (args[0] == "-size")):
             if self._design.bins:
                 print("There are already bins created")
-                return
+                return False
 
             try:
                 width = int(args[1])
                 height = int(args[2])
             except ValueError:
-                print("Dimentions for bins are ment to be integers")
-                raise TclError
+                interfaceLogger.error(
+                    "Dimentions for bins are ment to be integers")
+                return False
             
             self._design.create_bins(width, height)
             self._design.update_bins()
+            return True
         else:
             raise TclError
     # End of method
-
-    def _list_components(self, *args):
+    
+    def _design_info(self, * args):
         if not self._design:
-            print("There is no design")
-            return
+            interfaceLogger.info("There is no design")
+        else:
+            interfaceLogger.info(self._design)
+    # End of method
+
+    def _list_components(self, *args) -> int:
+        if not self._design:
+            interfaceLogger.info("There is no design")
+            return 0
         
         for comp in self._design.core.components:
-            print(comp)
+            interfaceLogger.info(comp)
+        return self._design.core.noof_components()
     # End of method
 
-    def _list_io_ports(self, *args):
+    def _list_io_ports(self, *args) -> int:
         if not self._design:
-            print("There is no design")
-            return
+            interfaceLogger.info("There is no design")
+            return 0
         
         for ioPort in self._design.core.ioPorts:
-            print(ioPort)
+            interfaceLogger.info(ioPort)
+        return self._design.core.noof_IO_ports()
     # End of method
 
-    def _list_nets(self, *args):
+    def _list_nets(self, *args) -> int:
         if not self._design:
-            print("There is no design")
-            return
+            interfaceLogger.info("There is no design")
+            return 0
         
         for net in self._design.core.nets:
-            print(net)
+            interfaceLogger.info(net)
+        return self._design.core.noof_nets()
     # End of method
 
-    def _list_rows(self, *args):
+    def _list_rows(self, *args) -> int:
         if not self._design:
-            print("There is no design")
-            return
+            interfaceLogger.info("There is no design")
+            return 0
         
         for row in self._design.core.rows:
-            print(row)
+            interfaceLogger.info(row)
+        return self._design.core.noof_rows()
     # End of method
 
-    def __load_design(self, *args):
-        self.__print_yellow("Under Construction")
+    def _load_design(self, *args):
+        self._print_yellow("Under Construction")
         print("To be used for loading design used on previous run")
     # End of method
 
-    def __load_components(self, *args):
-        commandFormat = "load_components [-h | -f file]"
+    def _load_components_coords(self, *args) -> bool:
+        commandFormat = "load_components_coords [-h | -f file]"
         commandDescription = "Loads component positions from given file"
 
         if ((len(args) == 1) & (args[0] == "-h")):
             print(f"{commandFormat}\n{commandDescription}")
-            return
+            return True
         elif ((len(args) == 2) & (args[0] == "-f")):
             if not self._design:
-                print("There is no design loaded")
-                return
+                interfaceLogger.info("There is no design loaded")
+                return False
 
             try:
                 with open(args[1], "r") as file:
-                    success = components_location_parser(file, self._design)
+                    if components_location_parser(file, self._design):
+                        interfaceLogger.info("Components positions loaded")
+                        return True
+                    else:
+                        interfaceLogger.error(
+                            "Could not load components positions")
+                        return False
             except IOError:
-                print("There is no file: %s" % (args[1]))
-            
-            if not success: print("Failure")
-            else: print("Success")
+                interfaceLogger.error(f"There is no file: {args[1]}")
+                return False
         else:
             raise TclError
     # End of method
 
     def _maze_routing(self):
         if not self._design:
-            print("There is no design loaded")
+            interfaceLogger.info("There is no design loaded")
             return
 
         if not self._design.bins:
-            print("There are no bins for routing to be done")
+            interfaceLogger.info("There are no bins for routing to be done")
             return
 
         maze_routing(self._design)
     # End of method
 
-    def __place_random(self, *args):
-        res = random_placer(self._design.core)
-        if res:
-            print("Success")
+    def _place_random(self, *args) -> bool:
+        # TODO: max tries for placement given by the user and show default value
+        if random_placer(self._design.core):
+            interfaceLogger.info("Random placement was sucessfull")
+            return True
         else:
-            print("Failure")
+            interfaceLogger.info("Random placement failed")
+            return False
     # End of method
 
-    def __read_design(self, *args):
+    def _read_design(self, *args) -> bool:
         commandFormat = "read_design [-h | -f file]"
         commandDescription = "Reads design from given file"
 
         if ((len(args) == 1) & (args[0] == "-h")):
             print(f"{commandFormat}\n{commandDescription}")
-            return
+            return True
         elif ((len(args) == 2) & (args[0] == "-f")):
             if self._design:
-                print("Design is already loaded")
-                return
+                interfaceLogger.info("Design is already loaded")
+                return False
 
             try:
                 with open(args[1], "r") as file:
                     newDesign = practical_format_parcer(file)
             except IOError:
-                print("There is no file: %s" % (args[1]))
+                interfaceLogger.error(f"There is no file: {args[1]}")
+                return False
             
-            if not newDesign:
-                print("Failure")
-            else:
-                self._design = newDesign
-                print("Success")
+            self._design = newDesign
+            interfaceLogger.info(f"Design loaded: {self._design.name}")
+            return True
         else:
             raise TclError
     # End of method
@@ -243,25 +286,25 @@ class TclInterpreter:
     def _remove_bins(self):
         if (self._design.bins != None):
             del self._design.bins
-            print("Bins Removed")
+            interfaceLogger.info("Bins Removed")
         else:
-            print("There are no bins to be removed")
+            interfaceLogger.info("There are no bins to be removed")
 
     def _remove_design(self):
         if (self._design != None):
             del self._design
-            print("Design Removed")
+            interfaceLogger.info("Design Removed")
         else:
-            print("There is no design to be removed")
+            interfaceLogger.info("There is no design to be removed")
     # End of method
 
-    def __save_design(self, *args):
-        self.__print_yellow("Under Construction")
+    def _save_design(self, *args):
+        self._print_yellow("Under Construction")
         print("To be used for saving design for future runs")
     # End of method
 
-    def __save_components(self, *args):
-        commandFormat = "save_components [-h | -f file]"
+    def _save_components_coords(self, *args):
+        commandFormat = "save_components_coords [-h | -f file]"
         commandDescription = "Saves component positions to given file"
 
         if ((len(args) == 1) & (args[0] == "-h")):
@@ -269,17 +312,18 @@ class TclInterpreter:
             return
         elif ((len(args) == 2) & (args[0] == "-f")):
             if not self._design:
-                print("Design is not loaded")
+                interfaceLogger.info("Design is not loaded")
                 return
 
             with open(args[1], "w") as file:
-                write_component_positions(file, self._design.name,
-                                        self._design.core.components)
+                write_component_positions(
+                    file, self._design.name,self._design.core.components
+                )
         else:
             raise TclError
     # End of method
 
-    def __start_gui(self):
+    def _start_gui(self):
         self._gui = GUI("Router", self._design)
 
         self._gui.mainloop()
@@ -288,49 +332,55 @@ class TclInterpreter:
     def _test(self, *args):
         """Tcl command used for testing features"""
 
-        print("Hello")
+        print("Test command used during development")
 
-        #net = self._design.core.get_net(args[0])
-        #if not net:
-        #    print("Use valid name")
-        #    raise TclError
-        #for net in self._design.core.nets:
-        #    self._bins.maze_routing(net)
-        maze_routing(self._design)
+        #Code for testing below:
+
+    # End of method
+
+    def _evaluate_command(self, command: str):
+        """Evaluates given tcl command"""
+
+        if ((command == "quit") | (command == "exit")):
+            return "Finish"
+        # Readline history, not the Tcl Command
+        elif (command == "history"):
+            readline.add_history(command)
+            for i in range(readline.get_current_history_length()):
+                print(readline.get_history_item(i))
+        
+        # Evaluate the command
+        #try:
+        self._tcl.eval(command)
+        #except TclError:
+        #    self._print_red("Invalid Tcl command or options on one")
+        #    interfaceLogger.error("Invalid Tcl command or options on one")
+
+        readline.add_history(command)
     # End of method
 
     # Interpreter
-    def interpreter(self):
+    def interpreter(self) -> None:
         """Interpreter"""
 
         while (True):
-            line = input("\x1B[36mprompt> \x1B[0m")
-            if (line == "quit"):
+            line = input(f"{CYAN}Router {os.getcwd()}> {NORMAL}")
+            if self._evaluate_command(line) == "Finish":
                 print("Goodbye!")
                 break
-            # Readline history, not the Tcl Command
-            elif (line == "history"):
-                readline.add_history(line)
-                for i in range(readline.get_current_history_length()):
-                    print(readline.get_history_item(i))
-            
-            # Evaluate the command
-            try:
-                self._tcl.eval(line)
-            except TclError:
-                self.__print_red("Invalid Tcl command or options on one")
-
-            readline.add_history(line)
-        self._test()
-        self._bins_info()
     # End of method
 
-    # For Design
-    def set_design(self, newDesign: Design):
-        if (not isinstance(newDesign, Design)):
-            raise TypeError("Object is not a Design")
-        
-        self._design = newDesign
-    
-    def get_design(self) -> (Design | None):
-        return self._design
+    def script_interpreter(self, script: str) -> None:
+        try:
+            with open(script, "r") as file:
+                while line := file.readline().rstrip():
+                    result = self._evaluate_command(line)
+        except IOError:
+            interfaceLogger.error(f"There is no file: {script}")
+
+        if result == "Finish":
+            print("Goodbye!")
+        else:
+            self.interpreter()
+    # End of method
+# End of class

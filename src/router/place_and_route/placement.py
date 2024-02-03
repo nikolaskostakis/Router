@@ -2,10 +2,16 @@
 Module containing functions for placement
 """
 
+import logging
 import random
 
-from structures.design_components import Core
-from structures.design_components import Component
+import config
+from structures.design_components import Core, Component
+
+# Logging
+placementLogger = logging.getLogger(__name__)
+placementLogger.setLevel(logging.DEBUG)
+placementLogger.addHandler(config.consoleHandler)
 
 MAX_RANDOM_TRIES = 100000
 
@@ -56,9 +62,11 @@ def random_placer(core: Core) -> bool:
 
         if not placed:
             index = core.components.index(comp)
-            print(f"Failed at {index + 1}/{core.noof_components()}")
+            placementLogger.error(
+                f"Failed at {index + 1}/{core.noof_components()}")
             placedComponents.clear()
             return False
     
     placedComponents.clear()
     return True
+# End of function
