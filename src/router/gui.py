@@ -1,10 +1,10 @@
 """
 """
 
-from tkinter import Tk, Canvas, Frame, Label, Button
+from tkinter import Tk, Canvas, Frame, Label, Button, Entry, messagebox
 import time
 
-from structures.design_components import Design
+from structures.design_components import Design, NetTreeNode, Net
 
 class GUI(Tk):
 
@@ -26,6 +26,7 @@ class GUI(Tk):
     show_components = True
     show_nets = False
     show_bins = False
+    netSearch = None
 
     def __init__(self, screenName:(str|None) = None, design: Design = None):
         super().__init__(screenName)
@@ -87,43 +88,92 @@ class GUI(Tk):
         time.sleep(1)
     # End of method
 
+    def _recursive_net_drawing(self, node:NetTreeNode, color="orange"):
+        if node.children == []:
+            return
+        x1, y1 = node.point.get_coordinates()
+        if (node.point.__class__.__name__ == "Component"):
+            w1, h1 = node.point.get_dimentions()
+        else:
+            w1 = 0
+            h1 = 0
+        x1 = x1 * self._ratio + self._offset
+        y1 = y1 * self._ratio + self._offset
+        w1 *= self._ratio
+        h1 *= self._ratio
+
+        x1 += w1/2
+        y1 += h1/2
+
+        for child in node.children:
+            x2, y2 = child.point.get_coordinates()
+            if (child.point.__class__.__name__ == "Component"):
+                w2, h2 = child.point.get_dimentions()
+            else:
+                w2 = 0
+                h2 = 0
+            x2 = x2 * self._ratio + self._offset
+            y2 = y2 * self._ratio + self._offset
+            w2 *= self._ratio
+            h2 *= self._ratio
+
+            x2 += w2/2
+            y2 += h2/2
+
+            self._canvas.create_line(x1,y1,x2,y2,
+                                            fill=color, tags="nets")
+            self._recursive_net_drawing(child, color)
+    # End of method
+
     def _draw_nets(self):
         if self.show_nets:
             for net in self._design.core.nets:
-                x1, y1 = net.source.get_coordinates()
-                if (net.source.__class__.__name__ == "IOPort"):
-                    w1 = 0
-                    h1 = 0
+                if not net.connectionsTree:
+                    x1, y1 = net.source.get_coordinates()
+                    if (net.source.__class__.__name__ == "IOPort"):
+                        w1 = 0
+                        h1 = 0
+                    else:
+                        w1, h1 = net.source.get_dimentions()
+
+                    x1 = x1 * self._ratio + self._offset
+                    y1 = y1 * self._ratio + self._offset
+                    w1 *= self._ratio
+                    h1 *= self._ratio
+
+                    x1 += w1/2
+                    y1 += h1/2
+
+                    for dr in net.drain:
+                        x2, y2 = dr.get_coordinates()
+                        w2, h2 = dr.get_dimentions()
+
+                        x2 = x2 * self._ratio + self._offset
+                        y2 = y2 * self._ratio + self._offset
+                        w2 *= self._ratio
+                        h2 *= self._ratio
+
+                        x2 += w2/2
+                        y2 += h2/2
+
+                        self._canvas.create_line(x1,y1,x2,y2,
+                                                fill="black", tags="nets")
                 else:
-                    w1, h1 = net.source.get_dimentions()
-
-                x1 = x1 * self._ratio + self._offset
-                y1 = y1 * self._ratio + self._offset
-                w1 *= self._ratio
-                h1 *= self._ratio
-
-                x1 += w1/2
-                y1 += h1/2
-
-                for dr in net.drain:
-                    x2, y2 = dr.get_coordinates()
-                    w2, h2 = dr.get_dimentions()
-
-                    x2 = x2 * self._ratio + self._offset
-                    y2 = y2 * self._ratio + self._offset
-                    w2 *= self._ratio
-                    h2 *= self._ratio
-
-                    x2 += w2/2
-                    y2 += h2/2
-
-                    self._canvas.create_line(x1,y1,x2,y2,
-                                             fill="red", tags="nets")
+                    self._recursive_net_drawing(net.connectionsTree)
         else:
             self._canvas.delete("nets")
         
         self.show_nets = not self.show_nets
         time.sleep(1)
+    # End of method
+    
+    def _highlight_net(self):
+        netName = self.netSearch.get()
+        net = self._design.core.get_net(netName)
+        if (not net):
+            messagebox.showinfo("Net searching", f"There is no net {netName}")
+        else:
+            self._recursive_net_drawing(net.connectionsTree, color="red")
     # End of method
 
     def _draw_bins(self):
@@ -145,7 +195,7 @@ class GUI(Tk):
                     x2 = ((i+1) * bw) + self._offset
                     y2 = ((j+1) * bh) + self._offset
                     self._canvas.create_rectangle(x1, y1, x2, y2,
-                                              outline="orange", tags="bins")
+                                              outline="green", tags="bins")
         else:
             self._canvas.delete("bins")
 
@@ -233,15 +283,19 @@ class GUI(Tk):
     # End of method
 
     def _draw_buttons(self):
-        Button(self._buttonsFrame,text="Toggle Components", 
-               command= lambda:self.__draw_components()).grid(row=0, column=0,
+        Button(self._buttonsFrame,text="Toggle Components", width=20,
+               command= lambda:self.__draw_components()).grid(row=0, column=0,columnspan=2,
                                                               sticky="N")
-        Button(self._buttonsFrame,text="Toggle Nets", 
-               command= lambda:self._draw_nets()).grid(row=1, column=0,
+        Button(self._buttonsFrame,text="Toggle Nets", width=20,
+               command= lambda:self._draw_nets()).grid(row=1, column=0,columnspan=2,
                                                               sticky="N")
-        Button(self._buttonsFrame,text="Toggle Bins", 
-               command= lambda:self._draw_bins()).grid(row=2, column=0,
+        Button(self._buttonsFrame,text="Toggle Bins", width=20,
+               command= lambda:self._draw_bins()).grid(row=2, column=0,columnspan=2,
                                                               sticky="N")
+        self.netSearch = Entry(self._buttonsFrame, width=10)
+        self.netSearch.grid(row=3, column=1, sticky="N")
+        Button(self._buttonsFrame, text="Highlight Net", height=1,command= lambda:self._highlight_net()).grid(
+            row=3, column=0, sticky="N")
     # End of method
 
     def _draw_gui(self):

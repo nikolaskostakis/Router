@@ -350,11 +350,11 @@ class TclInterpreter:
                 print(readline.get_history_item(i))
         
         # Evaluate the command
-        #try:
-        self._tcl.eval(command)
-        #except TclError:
+        try:
+            self._tcl.eval(command)
+        except TclError:
         #    self._print_red("Invalid Tcl command or options on one")
-        #    interfaceLogger.error("Invalid Tcl command or options on one")
+            interfaceLogger.error("Invalid Tcl command or options on one")
 
         readline.add_history(command)
     # End of method
@@ -382,5 +382,7 @@ class TclInterpreter:
             print("Goodbye!")
         else:
             self.interpreter()
+        self._maze_routing()
+        self._start_gui()
     # End of method
 # End of class

@@ -5,6 +5,8 @@ Module housing the design components used for the router
 import numpy as np
 from numpy import ndarray
 
+from .trees import GenericTreeNode
+
 # Class BaseDesignElement
 class BaseDesignElement:
     """Base class used for a design element"""
@@ -200,6 +202,72 @@ class Component(RectangleDesignElement):
 # End of class
 
 
+class NetPoint(BaseDesignElement):
+
+    _bin: tuple[int,int] = None
+    """Bin where the point is"""
+
+    def __init__(self, name: str, x: float, y: float) -> None:
+        super().__init__(name, x, y)
+    # End of method
+
+    @property
+    def bin(self) -> tuple[int, int]:
+        """"""
+        return self._bin
+    # End of method
+    
+    @bin.setter
+    def bin(self, newBin) -> None:
+        self._bin = newBin
+    # End of method
+
+# Class NetTreeNode
+class NetTreeNode:
+    pass
+
+class NetTreeNode(GenericTreeNode):
+    """
+    A class used to represent the shape of the net after the routing
+
+    The net is a tree with its source as its root and the leaves been the
+    endpoints
+    """
+
+    _point:(IOPort|Component|NetPoint)
+
+    def __init__(self, name:str,
+                 point:(IOPort|Component|NetPoint),
+                 parent:NetTreeNode = None):
+        super().__init__(name, parent)
+        self._point = point
+    # End of method
+
+    def __repr__(self) -> str:
+        return f"{self._name}"
+
+    @property
+    def point(self):
+        """"""
+        return self._point
+    # End of method
+
+# End of class
+
+def find_points_on_bin(root:NetTreeNode, bin:tuple[int,int]):
+    def iteratative_search(node:NetTreeNode):
+        if bin == node.point.bin:
+            result = [node]
+        else:
+            result = []
+
+        for child in node.children:
+            result.extend(iteratative_search(child))
+        return result
+    
+    return iteratative_search(root)
+# End of function
+
 # Class Net
 class Net:
     """
@@ -210,6 +278,8 @@ class Net:
 
     _source: (IOPort | Component)= None
     _drain: list[IOPort | Component] = []
+
+    connectionsTree: NetTreeNode = None
 
     def __init__(self, name:str, source:(IOPort|Component),
                  drain:list[IOPort|Component]):
@@ -441,9 +511,10 @@ class Design:
     A class representing the whole design
 
     Methods
-    set_name(name)
-    get_name()
+    -------
     create_core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
+
+    create_bins(width, height)
     """
 
     _name: str = None
@@ -519,4 +590,12 @@ class Design:
             bin = (int((y + h/2)/binHeight), int((x + w/2)/binWidth))
             comp.bin = bin
     # End of method
+    
+    def find_bin(self, coords:tuple[float, float]):
+        binsSize = self._bins.size
+        binWidth = (self._core.width + 2 *self._core.x_offset) / binsSize[0]
+        binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[1]
+
+        return (int(coords[1]/binHeight), int(coords[0]/binWidth))
+
 # End of class
