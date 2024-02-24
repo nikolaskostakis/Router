@@ -9,13 +9,16 @@ import readline
 from tkinter import Tk, Tcl, TclError
 
 import config
-from structures.design_components import Design
+from structures.design_components import Design, Net
+from structures.trees import print_generic_tree
 from gui import GUI
 from file_io.parsers import practical_format_parcer
 from file_io.parsers import components_location_parser
 from file_io.writers import write_component_positions
 from place_and_route.placement import random_placer
-from place_and_route.routing import maze_routing
+from place_and_route.routing import maze_routing, calculate_tree_wirelength
+from place_and_route.routing import calculate_HPWL, calculate_net_HPWL
+from place_and_route.routing import calculate_net_tree_wirelength
 
 # Logging
 interfaceLogger = logging.getLogger(__name__)
@@ -57,6 +60,8 @@ class TclInterpreter:
         "place_random",
         # Routing
         "maze_routing",
+        # Nets
+        "net_info", "calculate_net_WL", "calculate_WL",
         # GUI
         "start_gui",
         # Testing
@@ -88,6 +93,8 @@ class TclInterpreter:
     # Tcl Command creation
     def _create_Tcl_commands(self):
         self._tcl.createcommand("bins_info", self._bins_info)
+        self._tcl.createcommand("calculate_WL", self._calculate_WL)
+        self._tcl.createcommand("calculate_net_WL", self._calculate_net_WL)
         self._tcl.createcommand("create_bins", self._create_bins)
         self._tcl.createcommand("design_info", self._design_info)
         self._tcl.createcommand("list_components", self._list_components)
@@ -100,6 +107,7 @@ class TclInterpreter:
             self._load_components_coords
         )
         self._tcl.createcommand("maze_routing", self._maze_routing)
+        self._tcl.createcommand("net_info", self._net_info)
         self._tcl.createcommand("place_random", self._place_random)
         self._tcl.createcommand("read_design", self._read_design)
         self._tcl.createcommand("remove_bins", self._remove_bins)
@@ -128,9 +136,62 @@ class TclInterpreter:
             interfaceLogger.info(self._design.bins)
     # End of method
 
+
+    def _calculate_net_WL(self, *args):
+        commandFormat = "calculate_net_WL [-h | -net net] [-HPWL | -tree]"
+        commandDescription = "Calculates the wirelength of the design"
+
+        if ((len(args) == 1) & (args[0] == "-h")):
+            print(f"{commandFormat}\n{commandDescription}")
+            return True
+        elif ((len(args) == 3) & (args[0] == "-net")
+              & ((args[2] == "-HPWL") | (args[2] == "-tree"))):
+
+            if not self._design:
+                interfaceLogger.info("There is no design loaded")
+                return
+
+            net:Net = self._design.core.get_net(args[1])
+            if (not net):
+                interfaceLogger.error(f"There is no net {args[1]}")
+                return False
+            else:
+                if(args[2] == "-HPWL"):
+                    wpwl = calculate_net_HPWL(net)
+                    interfaceLogger.info(
+                        f"Net {net.name} half-perimeter "\
+                        f"wirelength is: {wpwl:.3f}")
+                else:
+                    treeWL = calculate_net_tree_wirelength(net)
+                    interfaceLogger.info(
+                        f"Net {net.name} routed wirelength is: {treeWL:.3f}")
+        else:
+            raise TclError
+    # End of method
+        
+    def _calculate_WL(self, *args):
+        commandFormat = "calculate_WL [-h | -HPWL | -tree]"
+        commandDescription = "Calculates the wirelength of the design"
+
+        if (len(args) == 1):
+            if (args[0] == "-h"):
+                print(f"{commandFormat}\n{commandDescription}")
+                return True
+            elif (args[0] == "-HPWL"):
+                wpwl = calculate_HPWL(self._design)
+                interfaceLogger.info(
+                    f"Design half-perimeter wirelength is: {wpwl:.3f}")
+            elif (args[0] == "-tree"):
+                treeWL = calculate_tree_wirelength(self._design)
+                interfaceLogger.info(
+                    f"Design routed wirelength is: {treeWL:.3f}")
+        else:
+            raise TclError
+    # End of method
+
     def _create_bins(self, *args) -> bool:
         commandFormat = "create_bins [-h | -size width height]"
-        commandDescription = "Creates aray of bins with given dimentions"
+        commandDescription = "Creates array of bins with given dimentions"
 
         if ((len(args) == 1) & (args[0] == "-h")):
             print(f"{commandFormat}\n{commandDescription}")
@@ -149,7 +210,6 @@ class TclInterpreter:
                 return False
             
             self._design.create_bins(width, height)
-            self._design.update_bins()
             return True
         else:
             raise TclError
@@ -245,6 +305,32 @@ class TclInterpreter:
             return
 
         maze_routing(self._design)
+    # End of method
+
+    def _net_info(self, *args) -> bool:
+        commandFormat = "net_info [-h | net]"
+        commandDescription = "Displays information about a net"
+        if (len(args) == 1):
+            if (args[0] == "-h"):
+                print(f"{commandFormat}\n{commandDescription}")
+                return True
+            else:
+                if not self._design:
+                    interfaceLogger.info("There is no design loaded")
+                    return
+                net:Net = self._design.core.get_net(args[0])
+                if (not net):
+                    interfaceLogger.error(f"There is no net {args[0]}")
+                    return False
+                else:
+                    if (net.connectionsTree is not None):
+                        interfaceLogger.info(f"Net: {net.name}")
+                        print_generic_tree(net.connectionsTree)
+                    else:
+                        interfaceLogger.info(net)
+                    return True
+        else:
+            raise TclError
     # End of method
 
     def _place_random(self, *args) -> bool:
@@ -382,7 +468,5 @@ class TclInterpreter:
             print("Goodbye!")
         else:
             self.interpreter()
-        self._maze_routing()
-        self._start_gui()
     # End of method
 # End of class

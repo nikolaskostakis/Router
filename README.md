@@ -7,3 +7,4 @@
 - tkinter
 - pyreadline
 - numpy
+- mathplotlib

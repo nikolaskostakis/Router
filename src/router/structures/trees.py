@@ -1,6 +1,15 @@
 """
 """
-from time import sleep
+import logging
+
+import config
+
+# Logging
+treesLogger = logging.getLogger(__name__)
+treesLogger.setLevel(logging.DEBUG)
+treesLogger.addHandler(config.consoleHandler)
+
+# Class GenericTreeNode
 class GenericTreeNode:
     pass
 
@@ -54,13 +63,16 @@ class GenericTreeNode:
     # End of method
 # End of class
 
+
 def print_generic_tree(root:GenericTreeNode):
-    def recursive_print(node:GenericTreeNode, prefix:str = ""):
-        print(f"{prefix}{node.name}")
+    """Recursive printing function"""
+    def _recursive_print(node:GenericTreeNode, prefix:str = ""):
+        treesLogger.info(f"{prefix}{node.name}")
         prefix += "  "
         for child in node.children:
-            recursive_print(child, prefix)
+            _recursive_print(child, prefix)
     # End of inner function
 
-    recursive_print(root)
+    treesLogger.info("Tree structure:")
+    _recursive_print(root, "  ")
 # End of function

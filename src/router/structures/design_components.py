@@ -199,10 +199,17 @@ class Component(RectangleDesignElement):
     def bin(self, newBin) -> None:
         self._bin = newBin
     # End of method
+
+    def get_center(self) -> tuple[float, float]:
+        """Returns the center of the component"""
+        return (self.x + self._width/2), (self.y + self._height/2)
+    # End of method
 # End of class
 
 
+# Class Netpoint
 class NetPoint(BaseDesignElement):
+    """A class used to represent a component of the design"""
 
     _bin: tuple[int,int] = None
     """Bin where the point is"""
@@ -221,6 +228,8 @@ class NetPoint(BaseDesignElement):
     def bin(self, newBin) -> None:
         self._bin = newBin
     # End of method
+# End of class
+
 
 # Class NetTreeNode
 class NetTreeNode:
@@ -247,26 +256,63 @@ class NetTreeNode(GenericTreeNode):
         return f"{self._name}"
 
     @property
-    def point(self):
+    def point(self) -> (IOPort|Component|NetPoint):
         """"""
         return self._point
     # End of method
 
+    def find_points_on_bin(self, bin:tuple[int,int]):
+        def _recursive_search(node:NetTreeNode):
+            if bin == node.point.bin:
+                result = [node]
+            else:
+                result = []
+
+            for child in node.children:
+                result.extend(_recursive_search(child))
+            return result
+        # End of inner function
+
+        return _recursive_search(self)
+    # End of method
+
+    def find_nearest_tree_node(self, destination:tuple[float,float]):
+        def _distance(point:tuple[float,float]):
+            distance = (point[0] - destination[0])**2 \
+                       + (point[1] - destination[1])**2
+            return distance
+        # End of function
+
+        def _recursive_nearest_search(node:NetTreeNode) -> NetTreeNode:
+            if (len(node.children) == 0):
+                return node
+
+            if (node.__class__.__name__ == "Component"):
+                shortestDist = _distance(node.point.get_center())
+            else:
+                shortestDist = _distance(node.point.get_coordinates())
+            shortestPoint = node
+
+            for child in node.children:
+                childShortestPoint = _recursive_nearest_search(child)
+                if (node.__class__.__name__ == "Component"):
+                    childShortestDist = _distance(
+                        childShortestPoint.point.get_center())
+                else:
+                    childShortestDist = _distance(
+                        childShortestPoint.point.get_coordinates())
+                
+                if (childShortestDist < shortestDist):
+                    shortestPoint = childShortestPoint
+                    shortestDist = childShortestDist
+            
+            return shortestPoint
+        # End of function
+
+        return _recursive_nearest_search(self)
+    # End of method
 # End of class
 
-def find_points_on_bin(root:NetTreeNode, bin:tuple[int,int]):
-    def iteratative_search(node:NetTreeNode):
-        if bin == node.point.bin:
-            result = [node]
-        else:
-            result = []
-
-        for child in node.children:
-            result.extend(iteratative_search(child))
-        return result
-    
-    return iteratative_search(root)
-# End of function
 
 # Class Net
 class Net:
@@ -515,6 +561,8 @@ class Design:
     create_core(coreUtil, width, height, aspectRatio, xOffset, yOffset)
 
     create_bins(width, height)
+
+    find_bin(coords)
     """
 
     _name: str = None
@@ -526,9 +574,13 @@ class Design:
     _bins: Bins = None
     """Routing Bins"""
 
+
+    _isRouted: bool = None
+
     def __init__(self, name:str, comments:str) -> None:
         self._name = name
         self._comments = comments
+        self._isRouted = False
     # End of method
 
     def __repr__(self) -> str:
@@ -560,6 +612,16 @@ class Design:
     def bins(self) -> None:
         del self._bins
     # End of method
+    
+    @property
+    def isRouted(self) -> bool:
+        return self._isRouted
+    # End of method
+
+    @isRouted.setter
+    def isRouted(self, isRouted) -> None:\
+        self._isRouted = isRouted
+    # End of method
 
     def create_core(self, coreUtil: int, width: float, height: float,
                     aspectRatio: float, xOffset: float, yOffset: float) -> None:
@@ -571,9 +633,11 @@ class Design:
     def create_bins(self, width:int, height:int) -> None:
         """Creates an array of bins with the given dimentions"""
         self._bins = Bins(width, height)
+        self._update_bins()
+        self._isRouted = False
     # End of method
 
-    def update_bins(self):
+    def _update_bins(self):
         binsSize = self._bins.size
         binWidth = (self._core.width + 2 *self._core.x_offset) / binsSize[0]
         binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[1]
@@ -597,5 +661,21 @@ class Design:
         binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[1]
 
         return (int(coords[1]/binHeight), int(coords[0]/binWidth))
-
+    # End of method
 # End of class
+
+
+def get_center_coordinates(
+        point:(IOPort|Component|NetPoint)) -> tuple[float,float]:
+    """
+    Gets the coordinates of the point or its center, 
+    if the point is a components
+    """
+
+    if (point.__class__.__name__ == "Component"):
+        px, py = point.get_center()
+    else:
+        px, py = point.get_coordinates()
+
+    return px, py
+# End of function

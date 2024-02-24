@@ -3,6 +3,7 @@
 
 from tkinter import Tk, Canvas, Frame, Label, Button, Entry, messagebox
 import time
+from matplotlib import pyplot
 
 from structures.design_components import Design, NetTreeNode, Net
 
@@ -77,10 +78,11 @@ class GUI(Tk):
                                               outline="blue", tags="comp")
                 #self._canvas.create_text((x + (width / 2)), (y + (height / 2)),
                 #                         text=self._design.core.components[i].name,
-                #                         fill="blue", width=width)
+                #                         fill="blue", width=width, tags="comp")
         else:
             self._canvas.delete("comp")
             self._canvas.delete("nets")
+            self.show_nets = True
 
         self.show_components = not self.show_components
         self.update()
@@ -88,7 +90,9 @@ class GUI(Tk):
         time.sleep(1)
     # End of method
 
-    def _recursive_net_drawing(self, node:NetTreeNode, color="orange"):
+    def _recursive_net_drawing(self, node:NetTreeNode, color="orange", tags=""):
+        lineTags = ["nets","treeView"]
+        lineTags.append(tags)
         if node.children == []:
             return
         x1, y1 = node.point.get_coordinates()
@@ -121,14 +125,19 @@ class GUI(Tk):
             y2 += h2/2
 
             self._canvas.create_line(x1,y1,x2,y2,
-                                            fill=color, tags="nets")
-            self._recursive_net_drawing(child, color)
+                                     fill=color, tags=lineTags)
+            self._recursive_net_drawing(child, color, tags)
     # End of method
 
-    def _draw_nets(self):
+    def _draw_nets(self, drawP2P:bool = True):
+        if ((not self._design.isRouted) & (not drawP2P)):
+            messagebox.showinfo("Tree view", 
+                                "There is no tree view. Run routing first!")
+            return
+
         if self.show_nets:
             for net in self._design.core.nets:
-                if not net.connectionsTree:
+                if drawP2P:
                     x1, y1 = net.source.get_coordinates()
                     if (net.source.__class__.__name__ == "IOPort"):
                         w1 = 0
@@ -157,24 +166,70 @@ class GUI(Tk):
                         y2 += h2/2
 
                         self._canvas.create_line(x1,y1,x2,y2,
-                                                fill="black", tags="nets")
+                                                fill="black",
+                                                tags=["nets","P2P"])
                 else:
                     self._recursive_net_drawing(net.connectionsTree)
         else:
-            self._canvas.delete("nets")
+            if (drawP2P):
+                self._canvas.delete("P2P")
+            else:
+                self._canvas.delete("treeView")
         
         self.show_nets = not self.show_nets
         time.sleep(1)
     # End of method
     
-    def _highlight_net(self):
+    def _highlight_net(self, drawP2P = True):
         netName = self.netSearch.get()
         net = self._design.core.get_net(netName)
         if (not net):
             messagebox.showinfo("Net searching", f"There is no net {netName}")
         else:
-            self._recursive_net_drawing(net.connectionsTree, color="red")
+            if drawP2P:
+                x1, y1 = net.source.get_coordinates()
+                if (net.source.__class__.__name__ == "IOPort"):
+                    w1 = 0
+                    h1 = 0
+                else:
+                    w1, h1 = net.source.get_dimentions()
+
+                x1 = x1 * self._ratio + self._offset
+                y1 = y1 * self._ratio + self._offset
+                w1 *= self._ratio
+                h1 *= self._ratio
+
+                x1 += w1/2
+                y1 += h1/2
+
+                for dr in net.drain:
+                    x2, y2 = dr.get_coordinates()
+                    w2, h2 = dr.get_dimentions()
+
+                    x2 = x2 * self._ratio + self._offset
+                    y2 = y2 * self._ratio + self._offset
+                    w2 *= self._ratio
+                    h2 *= self._ratio
+
+                    x2 += w2/2
+                    y2 += h2/2
+
+                    self._canvas.create_line(x1,y1,x2,y2,
+                                            fill="purple",
+                                            tags=["nets","P2P", "highlight"])
+            else:
+                if not self._design.isRouted:
+                    messagebox.showinfo("Tree view", 
+                                    "There is no tree view. Run routing first!")
+                else:
+                    self._recursive_net_drawing(net.connectionsTree,
+                                                color="red",tags="highlight")
     # End of method
+    
+    def _clear_highlight(self):
+        self._canvas.delete("highlight")
+    # End of method
+
 
     def _draw_bins(self):
         if (not self._design.bins): return
@@ -201,6 +256,11 @@ class GUI(Tk):
 
         self.show_bins = not self.show_bins
     # End of method
+
+    def _bins_heatmap(self):
+        pyplot.imshow(self._design.bins.bins)
+        pyplot.colorbar()
+        pyplot.show()
 
     def _draw_core(self):
         if (self._design == None):
@@ -286,16 +346,28 @@ class GUI(Tk):
         Button(self._buttonsFrame,text="Toggle Components", width=20,
                command= lambda:self.__draw_components()).grid(row=0, column=0,columnspan=2,
                                                               sticky="N")
-        Button(self._buttonsFrame,text="Toggle Nets", width=20,
+        Button(self._buttonsFrame,text="Toggle Nets (P2P)", width=20,
                command= lambda:self._draw_nets()).grid(row=1, column=0,columnspan=2,
                                                               sticky="N")
+        Button(self._buttonsFrame,text="Toggle Nets (Tree)", width=20,
+               command= lambda:self._draw_nets(drawP2P=False)).grid(row=2, column=0,columnspan=2,
+                                                              sticky="N")
         Button(self._buttonsFrame,text="Toggle Bins", width=20,
-               command= lambda:self._draw_bins()).grid(row=2, column=0,columnspan=2,
+               command= lambda:self._draw_bins()).grid(row=3, column=0,columnspan=2,
+                                                              sticky="N")
+        Button(self._buttonsFrame,text="Bins Heatmap", width=20,
+               command= lambda:self._bins_heatmap()).grid(row=4, column=0,columnspan=2,
+                                                              sticky="N")
+        Label(self._buttonsFrame,text="", width=20,).grid(row=5, column=0,columnspan=2,
                                                               sticky="N")
         self.netSearch = Entry(self._buttonsFrame, width=10)
-        self.netSearch.grid(row=3, column=1, sticky="N")
-        Button(self._buttonsFrame, text="Highlight Net", height=1,command= lambda:self._highlight_net()).grid(
-            row=3, column=0, sticky="N")
+        self.netSearch.grid(row=6, column=1, sticky="N")
+        Button(self._buttonsFrame, text="Highlight Tree", height=1,command= lambda:self._highlight_net(drawP2P=False),width= 10).grid(
+            row=6, column=0, sticky="N")
+        Button(self._buttonsFrame, text="Highlight P2P", height=1,command= lambda:self._highlight_net(),width= 10).grid(
+            row=7, column=0, sticky="N")
+        Button(self._buttonsFrame, text="Clear", height=1,command=lambda:self._clear_highlight(),width= 10).grid(
+            row=7, column=1, sticky="N")
     # End of method
 
     def _draw_gui(self):
