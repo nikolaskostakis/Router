@@ -74,6 +74,53 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         tempBinsArray[west] = tempBinsArray[activeBin] + 1
                 # End if West
             # End if clockwise
+            else:
+                #NWSE
+                # North
+                if (activeBin[0] != 0):
+                    north = ((activeBin[0] - 1), activeBin[1])
+                    if (
+                        (north != drain)
+                        & (north not in activeList)
+                        & (north not in visitedList)
+                    ):
+                        activeList.append(north)
+                        tempBinsArray[north] = tempBinsArray[activeBin] + 1
+                # End if North
+                # West
+                if (activeBin[1] != 0):
+                    west = (activeBin[0], (activeBin[1] - 1))
+                    if (
+                        (west != drain)
+                        & (west not in activeList)
+                        & (west not in visitedList)
+                    ):
+                        activeList.append(west)
+                        tempBinsArray[west] = tempBinsArray[activeBin] + 1
+                # End if West
+                # South
+                if ((activeBin[0] +1) != size[0]):
+                    south = ((activeBin[0] + 1), activeBin[1])
+                    if (
+                        (south != drain)
+                        & (south not in activeList)
+                        & (south not in visitedList)
+                    ):
+                        activeList.append(south)
+                        tempBinsArray[south] = tempBinsArray[activeBin] + 1
+                # End if South
+                # East
+                if ((activeBin[1] + 1) != size[1]):
+                    east = (activeBin[0], (activeBin[1] + 1))
+                    if (
+                        (east != drain)
+                        & (east not in activeList)
+                        & (east not in visitedList)
+                    ):
+                        activeList.append(east)
+                        tempBinsArray[east] = tempBinsArray[activeBin] + 1
+                # End if East
+            # End else
             visitedList.append(activeBin)
         # End of while
     # End of function
@@ -97,6 +144,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         nextBin = north
                         newDirection = "NORTH"
                         value = tempBinsArray[north]
+                # End if North
                 # East
                 if ((activeBin[1] + 1) != size[1]):
                     east = (activeBin[0], (activeBin[1] + 1))
@@ -104,6 +152,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         nextBin = east
                         newDirection = "EAST"
                         value = tempBinsArray[east]
+                # End if East
                 # South
                 if ((activeBin[0] +1) != size[0]):
                     south = ((activeBin[0] + 1), activeBin[1])
@@ -111,6 +160,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         nextBin = south
                         newDirection = "SOUTH"
                         value = tempBinsArray[south]
+                # End if South
                 # West
                 if (activeBin[1] != 0):
                     west = (activeBin[0], (activeBin[1] - 1))
@@ -118,7 +168,43 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         nextBin = west
                         newDirection = "WEST"
                         value = tempBinsArray[west]
+                # End if West
             # End if clockwise
+            else:
+                #NWSE
+                # North
+                if (activeBin[0] != 0):
+                    north = ((activeBin[0] - 1), activeBin[1])
+                    if (tempBinsArray[north] < value) & (north != drain):
+                        nextBin = north
+                        newDirection = "NORTH"
+                        value = tempBinsArray[north]
+                # End if North
+                # West
+                if (activeBin[1] != 0):
+                    west = (activeBin[0], (activeBin[1] - 1))
+                    if (tempBinsArray[west] < value) & (west != drain):
+                        nextBin = west
+                        newDirection = "WEST"
+                        value = tempBinsArray[west]
+                # End if West
+                # South
+                if ((activeBin[0] +1) != size[0]):
+                    south = ((activeBin[0] + 1), activeBin[1])
+                    if (tempBinsArray[south] < value) & (south != drain):
+                        nextBin = south
+                        newDirection = "SOUTH"
+                        value = tempBinsArray[south]
+                # End if South
+                # East
+                if ((activeBin[1] + 1) != size[1]):
+                    east = (activeBin[0], (activeBin[1] + 1))
+                    if (tempBinsArray[east] < value) & (east != drain):
+                        nextBin = east
+                        newDirection = "EAST"
+                        value = tempBinsArray[east]
+                # End if East
+            # End else
 
             if ((direction != None) & (direction != newDirection)):
                 binsQueue.insert(0, activeBin)
@@ -141,33 +227,31 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
         # End of inner function
 
         def _expand_connections_tree(
-                parent:NetTreeNode,
+                point:NetTreeNode,
                 endpoint:(IOPort | Component),
                 pointNum:int
             ):
-            """Adds new point between endpoint and parent"""
-            if (parent.point.__class__.__name__ == "Component"):
-                px, py = parent.point.get_center()
-            else:
-                px, py = parent.point.get_coordinates()
-
-            if (endpoint.__class__.__name__ == "Component"):
-                ex, ey = endpoint.get_center()
-            else:
-                ex, ey = endpoint.get_coordinates()
+            """Adds new point between endpoint and existing point"""
+            px, py = get_center_coordinates(point.point)
+            ex, ey = get_center_coordinates(endpoint)
 
             if clockwiseRouting :
                 if (((px < ex) & (py < ey)) | ((px > ex) & (py > ey))):
                     newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
                 else:
                     newPoint=NetPoint(f"{net.name}_{pointNum}",px,ey)
+            else:
+                if (((px < ex) & (py < ey)) | ((px > ex) & (py > ey))):
+                    newPoint=NetPoint(f"{net.name}_{pointNum}",px,ey)
+                else:
+                    newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
 
             newPoint.bin = design.find_bin(newPoint.get_coordinates())
             pointNum += 1
                             
             newNode = NetTreeNode(newPoint.name,newPoint)
             newNode.add_child(NetTreeNode(endpoint.name, endpoint))
-            _rearrange_tree(parent, newNode)
+            _rearrange_tree(point, newNode)
         # End of inner function
 
         def _rearrange_tree(node: NetTreeNode, newNode: NetTreeNode):

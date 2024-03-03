@@ -1,11 +1,13 @@
 """
+Module housing the graphical user interface (GUI)
 """
 
 from tkinter import Tk, Canvas, Frame, Label, Button, Entry, messagebox
-import time
+from tkinter.ttk import Separator, Style
+
 from matplotlib import pyplot
 
-from structures.design_components import Design, NetTreeNode, Net
+from structures.design_components import Design, NetTreeNode, Bins
 
 class GUI(Tk):
 
@@ -87,7 +89,6 @@ class GUI(Tk):
         self.show_components = not self.show_components
         self.update()
         self.update_idletasks()
-        time.sleep(1)
     # End of method
 
     def _recursive_net_drawing(self, node:NetTreeNode, color="orange", tags=""):
@@ -177,7 +178,6 @@ class GUI(Tk):
                 self._canvas.delete("treeView")
         
         self.show_nets = not self.show_nets
-        time.sleep(1)
     # End of method
     
     def _highlight_net(self, drawP2P = True):
@@ -257,16 +257,20 @@ class GUI(Tk):
         self.show_bins = not self.show_bins
     # End of method
 
-    def _bins_heatmap(self):
-        pyplot.imshow(self._design.bins.bins)
-        pyplot.colorbar()
-        pyplot.show()
+    def _bins_heatmap(self, bins:Bins):
+        fig = pyplot.figure()
+        plt = fig.add_subplot(111)
+        hmap = plt.imshow(bins.bins, cmap='viridis')
+        fig.colorbar(hmap)
+        fig.show()
+    # End of method
 
     def _draw_core(self):
         if (self._design == None):
-            self._canvas.create_text((self._width / 2), (self._height / 2),
-                                      text = "There is no design loaded",
-                                      fill = "black")
+            self._canvas.create_text(
+                (self._width / 2), (self._height / 2),
+                text = "There is no design loaded", fill = "black"
+            )
             self._canvas.pack()
             return
         
@@ -279,9 +283,11 @@ class GUI(Tk):
         self._ratio = xRatio if (xRatio <= yRatio) else yRatio
 
         # Core
-        self._canvas.create_rectangle(self._offset,  self._offset,
-                                       ((coreWidth * self._ratio) + self._offset),
-                                       ((coreHeight * self._ratio) + self._offset))
+        self._canvas.create_rectangle(
+            self._offset,  self._offset,
+            ((coreWidth * self._ratio) + self._offset),
+            ((coreHeight * self._ratio) + self._offset)
+        )
 
         # Rows
         self.__draw_rows()
@@ -300,74 +306,130 @@ class GUI(Tk):
     # End of method
 
     def _draw_core_info(self):
-        Label(self._infoFrame, text="Design: ").grid(row=0, column=0, 
-                                                    sticky="NW")
-        Label(self._infoFrame, text=f"{self._design.name}").grid(row=0, column=1,
-                                                                sticky="NE")
+        """Information about the design shown in the info Frame"""
 
-        Label(self._infoFrame, text="--------------").grid(row=1, column=0,
-                                                          sticky="NW")
-        Label(self._infoFrame, text="--------------").grid(row=1, column=1,
-                                                          sticky="NE")
+        designLabel = Label(self._infoFrame, text="Design:")
+        designLabel.grid(row=0, column=0, sticky="NW")
 
-        Label(self._infoFrame, text="Rows: ").grid(row=2, column=0, sticky="NW")
-        Label(self._infoFrame, text=f"{self._design.core.noof_rows()}"
-              ).grid(row=2, column=1, sticky="NE")
+        designName = Label(self._infoFrame, text=f"{self._design.name}")
+        designName.grid(row=0, column=2, sticky="NE")
 
-        Label(self._infoFrame, text="IO Ports: ").grid(row=3, column=0,
-                                                      sticky="NW")
-        Label(self._infoFrame, text=f"{self._design.core.noof_IO_ports()}"
-              ).grid(row=3, column=1, sticky="NE")
+        seperator = Separator(self._infoFrame, orient='horizontal')
+        seperator.grid(row=1, column=0, columnspan=3, sticky="EW", pady=5)
 
-        Label(self._infoFrame, text="Components: ").grid(row=4, column=0, 
-                                                        sticky="NW")
-        Label(self._infoFrame, text=f"{self._design.core.noof_components()}"
-              ).grid(row=4, column=1, sticky="NE")
+        verticalSeperator = Separator(self._infoFrame, orient='vertical')
+        verticalSeperator.grid(row=0, column=1, rowspan=6, sticky="NS", pady=5)
 
-        Label(self._infoFrame, text="Nets: ").grid(row=5, column=0, sticky="NW")
-        Label(self._infoFrame, text=f"{self._design.core.noof_nets()}"
-              ).grid(row=5, column=1, sticky="NE")
+        rowsLabel = Label(self._infoFrame, text="Rows:")
+        rowsLabel.grid(row=2, column=0, sticky="NW")
+
+        rowsNum = Label(
+            self._infoFrame, text=f"{self._design.core.noof_rows()}"
+        )
+        rowsNum.grid(row=2, column=2, sticky="NE")
+
+        ioLabel = Label(self._infoFrame, text="IO Ports: ")
+        ioLabel.grid(row=3, column=0, sticky="NW")
+
+        ioNum = Label(
+            self._infoFrame, text=f"{self._design.core.noof_IO_ports()}"
+        )
+        ioNum.grid(row=3, column=2, sticky="NE")
+
+        componentsLabel = Label(self._infoFrame, text="Components: ")
+        componentsLabel.grid(row=4, column=0, sticky="NW")
+
+        componentsNum = Label(
+            self._infoFrame, text=f"{self._design.core.noof_components()}"
+        )
+        componentsNum.grid(row=4, column=2, sticky="NE")
+
+        netsLabel = Label(self._infoFrame, text="Nets: ")
+        netsLabel.grid(row=5, column=0, sticky="NW")
+
+        netsNum = Label(
+            self._infoFrame, text=f"{self._design.core.noof_nets()}"
+        )
+        netsNum.grid(row=5, column=2, sticky="NE")
     # End of method
 
     def _draw_bins_info(self):
+        """Information about the bins in the bins Frame"""
         if (not self._design.bins):
             Label(self._binsFrame,text="There are no bins").grid(
                 row=0, column=0,sticky="N")
             return
 
-        Label(self._binsFrame, text="Bins").grid(
-            row=0, column=0, columnspan=2, sticky="N")
-        Label(self._binsFrame, text="Size").grid(row=1,column=0)
-        Label(self._binsFrame, text=f"{self._design.bins.size}").grid(row=1,
-                                                                      column=1)
+        binsHeaderLabel = Label(self._binsFrame, text="Bins")
+        binsHeaderLabel.grid(row=0, column=0, columnspan=2, sticky="N")
+
+        sizeHeaderLabel = Label(self._binsFrame, text="Size")
+        sizeHeaderLabel.grid(row=1,column=0)
+
+        sizeLabel = Label(self._binsFrame, text=f"{self._design.bins.size}")
+        sizeLabel.grid(row=1,column=1)
     # End of method
 
     def _draw_buttons(self):
-        Button(self._buttonsFrame,text="Toggle Components", width=20,
-               command= lambda:self.__draw_components()).grid(row=0, column=0,columnspan=2,
-                                                              sticky="N")
-        Button(self._buttonsFrame,text="Toggle Nets (P2P)", width=20,
-               command= lambda:self._draw_nets()).grid(row=1, column=0,columnspan=2,
-                                                              sticky="N")
-        Button(self._buttonsFrame,text="Toggle Nets (Tree)", width=20,
-               command= lambda:self._draw_nets(drawP2P=False)).grid(row=2, column=0,columnspan=2,
-                                                              sticky="N")
-        Button(self._buttonsFrame,text="Toggle Bins", width=20,
-               command= lambda:self._draw_bins()).grid(row=3, column=0,columnspan=2,
-                                                              sticky="N")
-        Button(self._buttonsFrame,text="Bins Heatmap", width=20,
-               command= lambda:self._bins_heatmap()).grid(row=4, column=0,columnspan=2,
-                                                              sticky="N")
-        Label(self._buttonsFrame,text="", width=20,).grid(row=5, column=0,columnspan=2,
-                                                              sticky="N")
+        toggleComponentsButton = Button(
+            self._buttonsFrame,text="Toggle Components", width=20,
+            command= lambda:self.__draw_components()
+        )
+        toggleComponentsButton.grid(row=0, column=0, columnspan=2, sticky="N")
+
+        toggleNetsP2PButton = Button(
+            self._buttonsFrame,text="Toggle Nets (P2P)", width=20,
+            command= lambda:self._draw_nets()
+        )
+        toggleNetsP2PButton.grid(row=1, column=0, columnspan=2, sticky="N")
+
+        toggleNetsTreeButton = Button(
+            self._buttonsFrame,text="Toggle Nets (Tree)", width=20,
+            command= lambda:self._draw_nets(drawP2P=False)
+        )
+        toggleNetsTreeButton.grid(row=2, column=0, columnspan=2, sticky="N")
+
+        toggleBinsButton = Button(
+            self._buttonsFrame,text="Toggle Bins", width=20,
+            command= lambda:self._draw_bins()
+        )
+        toggleBinsButton.grid(row=3, column=0, columnspan=2, sticky="N")
+
+        binsHeatmapButton = Button(
+            self._buttonsFrame,text="Routing Bins Heatmap", width=20,
+            command= lambda:self._bins_heatmap(self._design.bins)
+        )
+        binsHeatmapButton.grid(row=4, column=0, columnspan=2, sticky="N")
+
+        elementBinsHeatmapButton = Button(
+            self._buttonsFrame,text="Element Bins Heatmap", width=20,
+            command= lambda:self._bins_heatmap(self._design.elementBins)
+        )
+        elementBinsHeatmapButton.grid(row=5, column=0, columnspan=2, sticky="N")
+        
+        seperator = Separator(self._buttonsFrame, orient='horizontal')
+        seperator.grid(row=6, column=0, columnspan=2, sticky="EW", pady=5)
+
         self.netSearch = Entry(self._buttonsFrame, width=10)
-        self.netSearch.grid(row=6, column=1, sticky="N")
-        Button(self._buttonsFrame, text="Highlight Tree", height=1,command= lambda:self._highlight_net(drawP2P=False),width= 10).grid(
-            row=6, column=0, sticky="N")
-        Button(self._buttonsFrame, text="Highlight P2P", height=1,command= lambda:self._highlight_net(),width= 10).grid(
-            row=7, column=0, sticky="N")
-        Button(self._buttonsFrame, text="Clear", height=1,command=lambda:self._clear_highlight(),width= 10).grid(
-            row=7, column=1, sticky="N")
+        self.netSearch.grid(row=7, column=1, sticky="N")
+
+        higlightTreeButton = Button(
+            self._buttonsFrame, text="Highlight Tree", height=1,
+            command= lambda:self._highlight_net(drawP2P=False),width= 10
+        )
+        higlightTreeButton.grid(row=7, column=0, sticky="N")
+
+        highlightP2PButton = Button(
+            self._buttonsFrame, text="Highlight P2P", height=1,
+            command= lambda:self._highlight_net(),width= 10
+        )
+        highlightP2PButton.grid(row=8, column=0, sticky="N")
+
+        clearHighlightButton = Button(
+            self._buttonsFrame, text="Clear", height=1,
+            command=lambda:self._clear_highlight(),width= 10
+        )
+        clearHighlightButton.grid(row=8, column=1, sticky="N")
     # End of method
 
     def _draw_gui(self):
@@ -385,17 +447,17 @@ class GUI(Tk):
 
         # Core Information
         self._infoFrame = Frame(self, width=150, height=150)
-        self._infoFrame.grid(row=0, column=0,sticky="N", padx=5, pady=5)
+        self._infoFrame.grid(row=0, column=0,sticky="NSEW", padx=10, pady=15)
         self._draw_core_info()
 
         # Bins Information
-        self._binsFrame = Frame(self, width=150, height=150)
-        self._binsFrame.grid(row=1, column=0, sticky="N", padx=5, pady=5)
+        self._binsFrame = Frame(self, width=150, height=50)
+        self._binsFrame.grid(row=1, column=0, sticky="NSEW", padx=10, pady=5)
         self._draw_bins_info()
 
         # Buttons
         self._buttonsFrame = Frame(self, width=150, height= 300)
-        self._buttonsFrame.grid(row=2, column=0, sticky="N", padx=5, pady=5)
+        self._buttonsFrame.grid(row=2, column=0, sticky="NSEW", padx=10, pady=5)
         self._draw_buttons()
         
     # End of method

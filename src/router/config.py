@@ -1,6 +1,7 @@
 """
 Config module used for global variables
 """
+
 import logging
 import sys
 

@@ -4,11 +4,11 @@ read_design -f benchmarks\\counter7.txt
 # save_components_coords -f data\\counter7.txt
 load_components_coords -f data\\counter7.txt
 create_bins -size 8 8
-net_info N17
-#list_nets
-#list_io_ports
-#quit
-maze_routing
+# net_info N17
+# list_nets
+# list_io_ports
+# quit
+maze_routing -counterclockwise
 net_info N17
 calculate_net_WL -net N17 -HPWL
 calculate_net_WL -net N17 -tree

@@ -11,9 +11,8 @@ from tkinter import Tk, Tcl, TclError
 import config
 from structures.design_components import Design, Net
 from structures.trees import print_generic_tree
-from gui import GUI
-from file_io.parsers import practical_format_parcer
-from file_io.parsers import components_location_parser
+from .gui import GUI
+from file_io.parsers import practical_format_parcer, components_location_parser
 from file_io.writers import write_component_positions
 from place_and_route.placement import random_placer
 from place_and_route.routing import maze_routing, calculate_tree_wirelength
@@ -38,8 +37,8 @@ class TclInterpreter:
 
     Methods
     -------
-    interpreter()
-    script_interpreter(script)
+    - interpreter()
+    - script_interpreter(script)
     """
 
     _commands = [
@@ -61,7 +60,9 @@ class TclInterpreter:
         # Routing
         "maze_routing",
         # Nets
-        "net_info", "calculate_net_WL", "calculate_WL",
+        "net_info",
+        # Wirelength
+        "calculate_net_WL", "calculate_WL",
         # GUI
         "start_gui",
         # Testing
@@ -295,16 +296,38 @@ class TclInterpreter:
             raise TclError
     # End of method
 
-    def _maze_routing(self):
-        if not self._design:
-            interfaceLogger.info("There is no design loaded")
-            return
+    def _maze_routing(self, *args) -> bool:
+        commandFormat = "maze_routing [-h | -counterclockwise]"
+        commandDescription = "Displays information about a net"
+        if (len(args) == 1):
+            if (args[0] == "-h"):
+                print(f"{commandFormat}\n{commandDescription}")
+                return True
+            elif (args[0] == "-counterclockwise"):
+                if not self._design:
+                    interfaceLogger.info("There is no design loaded")
+                    return
 
-        if not self._design.bins:
-            interfaceLogger.info("There are no bins for routing to be done")
-            return
+                if not self._design.bins:
+                    interfaceLogger.info("There are no bins for routing to be done")
+                    return
 
-        maze_routing(self._design)
+                maze_routing(self._design, clockwiseRouting=False)
+                return True
+            else:
+                raise TclError
+        elif (len(args) == 0):
+            if not self._design:
+                interfaceLogger.info("There is no design loaded")
+                return
+
+            if not self._design.bins:
+                interfaceLogger.info("There are no bins for routing to be done")
+                return
+
+            maze_routing(self._design)
+        else:
+            raise TclError
     # End of method
 
     def _net_info(self, *args) -> bool:
@@ -371,7 +394,7 @@ class TclInterpreter:
 
     def _remove_bins(self):
         if (self._design.bins != None):
-            del self._design.bins
+            self._design.remove_bins()
             interfaceLogger.info("Bins Removed")
         else:
             interfaceLogger.info("There are no bins to be removed")
@@ -447,7 +470,7 @@ class TclInterpreter:
 
     # Interpreter
     def interpreter(self) -> None:
-        """Interpreter"""
+        """TCL Shell"""
 
         while (True):
             line = input(f"{CYAN}Router {os.getcwd()}> {NORMAL}")
@@ -457,6 +480,14 @@ class TclInterpreter:
     # End of method
 
     def script_interpreter(self, script: str) -> None:
+        """
+        Execution of TCL input script.
+
+        In case the script does not contain a termination command 
+        (exit or quit), the user can continue using the tool with the
+        TCL Shell.
+        """
+
         try:
             with open(script, "r") as file:
                 while line := file.readline().rstrip():

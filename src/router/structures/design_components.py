@@ -573,7 +573,7 @@ class Design:
     """Design Core"""
     _bins: Bins = None
     """Routing Bins"""
-
+    _elementBins: Bins = None
 
     _isRouted: bool = None
 
@@ -607,10 +607,10 @@ class Design:
     def bins(self) -> Bins:
         return self._bins
     # End of method
-
-    @bins.deleter
-    def bins(self) -> None:
-        del self._bins
+    
+    @property
+    def elementBins(self) -> Bins:
+        return self._elementBins
     # End of method
     
     @property
@@ -619,7 +619,7 @@ class Design:
     # End of method
 
     @isRouted.setter
-    def isRouted(self, isRouted) -> None:\
+    def isRouted(self, isRouted) -> None:
         self._isRouted = isRouted
     # End of method
 
@@ -633,9 +633,15 @@ class Design:
     def create_bins(self, width:int, height:int) -> None:
         """Creates an array of bins with the given dimentions"""
         self._bins = Bins(width, height)
+        self._elementBins = Bins(width, height)
         self._update_bins()
         self._isRouted = False
     # End of method
+
+    def remove_bins(self):
+        del self.bins
+        del self.elementBins
+        self.isRouted = False
 
     def _update_bins(self):
         binsSize = self._bins.size
@@ -647,12 +653,14 @@ class Design:
             x,y = port.get_coordinates()
             bin = (int(y/binHeight), int(x/binWidth))
             port.bin = bin
+            self._elementBins[bin] += 1
         # For the Components
         for comp in self._core.components:
             x,y = comp.get_coordinates()
             w,h = comp.get_dimentions()
             bin = (int((y + h/2)/binHeight), int((x + w/2)/binWidth))
             comp.bin = bin
+            self._elementBins[bin] += 1
     # End of method
     
     def find_bin(self, coords:tuple[float, float]):
