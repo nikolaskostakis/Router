@@ -71,8 +71,11 @@ class RectangleDesignElement(BaseDesignElement):
     _height: float = None
     """ Height of the design element"""
 
-    def __init__(self, name:str, x:float, y:float,
-                 width: float, height: float) -> None:
+    def __init__(
+            self, name:str,
+            x:float, y:float,
+            width: float, height: float
+        ) -> None:
         super().__init__(name, x, y)
         self._width = width
         self._height = height
@@ -91,9 +94,14 @@ class RectangleDesignElement(BaseDesignElement):
         return self._height
     # End of method
 
-    def get_dimentions(self) -> tuple[float, float]:
-        """Returns dimentions (width, height)"""
+    def get_dimensions(self) -> tuple[float, float]:
+        """Returns dimensions (width, height)"""
         return self._width, self._height
+    # End of method
+
+    def set_dimensions(self, newWidth:float, newHeight:float) -> None:
+        self._width = newWidth
+        self._height = newHeight
     # End of method
 # End of class
 
@@ -106,8 +114,11 @@ class Row(RectangleDesignElement):
     _type: str = None     
     """ Row type """
 
-    def __init__(self, name:str, type:str, x:float, y:float,
-                 width: float, height: float) -> None:
+    def __init__(
+            self, name:str, type:str,
+            x:float, y:float,
+            width: float, height: float
+        ) -> None:
         super().__init__(name, x, y, width, height)
         self._type = type
     # End of method
@@ -156,6 +167,11 @@ class IOPort(BaseDesignElement):
 # End of class
 
 
+# Definition of class Pin for usage in class Component
+class Pin:
+    pass
+
+
 # Class Component
 class Component(RectangleDesignElement):
     """A class used to represent a component of the design"""
@@ -172,21 +188,51 @@ class Component(RectangleDesignElement):
     _type: str = None
     _timingType: str = None
 
-    def __init__(self, name:str, type:str = "n/a", timingType:str = "n/a",
-                 width:float = OLD_PF_COMP_WIDTH,
-                 heigh:float = OLD_PF_COMP_HEIGHT) -> None:
-        super().__init__(name, 0, 0, width, heigh)
+    _pins: list[Pin]
+
+    def __init__(
+            self, name:str, type:str = "n/a", timingType:str = "n/a",
+            width:float = OLD_PF_COMP_WIDTH,
+            height:float = OLD_PF_COMP_HEIGHT
+        ) -> None:
+        super().__init__(name, 0, 0, width, height)
         self._type = type
         self._timingType = timingType
+        self._pins = []
     # End of method
 
     def __repr__(self) -> None:
         rep_str = f"Component: {self.name} Cell_Type: {self._type} " \
                   f"Cell_Timing_Type: {self._timingType} " \
-                  f"Location: {self._x:.3f} {self._y:.3f}"
+                  f"Location: {self._x:.3f} {self._y:.3f} " \
+                  f"Width/Height: {self._width:.3f} {self._height:.3f}"
         if self._bin:
             rep_str += f" Bin: {self._bin}"
+        if (len(self._pins) != 0):
+            rep_str += " Pins:"
+            for pin in self._pins:
+                rep_str += f" {pin.name}"
         return rep_str
+    # End of method
+
+    @property
+    def cellType(self) -> str:
+        return self._type
+    # End of method
+
+    @cellType.setter
+    def cellType(self, newCellType) -> None:
+        self._type = newCellType
+    # End of method
+
+    @property
+    def timingType(self) -> str:
+        return self._timingType
+    # End of method
+
+    @timingType.setter
+    def timingType(self, newTimingType) -> None:
+        self._timingType = newTimingType
     # End of method
 
     @property
@@ -200,16 +246,66 @@ class Component(RectangleDesignElement):
         self._bin = newBin
     # End of method
 
+    @property
+    def pins(self) -> list[Pin]:
+        return self._pins
+    # End of method
+
     def get_center(self) -> tuple[float, float]:
         """Returns the center of the component"""
         return (self.x + self._width/2), (self.y + self._height/2)
+    # End of method
+
+    def add_pin(self, name:str, type:str="Input", function:str=None) -> None:
+        self._pins.append(Pin(name, self, type,function))
+    # End of method
+# End of class
+
+
+# Class Pin
+class Pin:
+    """A class used to represent a pin of a Component"""
+
+    _name: str = None
+    _parent: Component = None
+    _type: str = None
+    _function: str = None
+
+    def __init__(
+            self, name:str, parent:Component,
+            type:str="Input", function:str=None
+        ) -> None:
+        self._name = name
+        self._parent = parent
+        self._type = type
+        self._function = function
+    # End of method
+
+    @property
+    def name(self) -> str:
+        return self._name
+    # End of method
+
+    @property
+    def parent(self) -> Component:
+        return self._parent
+    # End of method
+
+    @property
+    def type(self) -> str:
+        return self._type
+    # End of method
+
+    @property
+    def function(self) -> str:
+        return self._function
     # End of method
 # End of class
 
 
 # Class Netpoint
 class NetPoint(BaseDesignElement):
-    """A class used to represent a component of the design"""
+    """A class used to represent a point of a net"""
 
     _bin: tuple[int,int] = None
     """Bin where the point is"""
@@ -243,11 +339,13 @@ class NetTreeNode(GenericTreeNode):
     endpoints
     """
 
-    _point:(IOPort|Component|NetPoint)
+    _point:(IOPort|Component|Pin|NetPoint)
 
-    def __init__(self, name:str,
-                 point:(IOPort|Component|NetPoint),
-                 parent:NetTreeNode = None):
+    def __init__(
+            self, name:str,
+            point:(IOPort|Component|Pin|NetPoint),
+            parent:NetTreeNode = None
+        ) -> None:
         super().__init__(name, parent)
         self._point = point
     # End of method
@@ -256,7 +354,7 @@ class NetTreeNode(GenericTreeNode):
         return f"{self._name}"
 
     @property
-    def point(self) -> (IOPort|Component|NetPoint):
+    def point(self) -> (IOPort|Component|Pin|NetPoint):
         """"""
         return self._point
     # End of method
@@ -281,7 +379,7 @@ class NetTreeNode(GenericTreeNode):
             distance = (point[0] - destination[0])**2 \
                        + (point[1] - destination[1])**2
             return distance
-        # End of function
+        # End of inner function
 
         def _recursive_nearest_search(node:NetTreeNode) -> NetTreeNode:
             if (len(node.children) == 0):
@@ -289,6 +387,8 @@ class NetTreeNode(GenericTreeNode):
 
             if (node.__class__.__name__ == "Component"):
                 shortestDist = _distance(node.point.get_center())
+            elif (node.__class__.__name__ == "Pin"):
+                shortestDist = _distance(node.point.parent.get_center())
             else:
                 shortestDist = _distance(node.point.get_coordinates())
             shortestPoint = node
@@ -298,6 +398,9 @@ class NetTreeNode(GenericTreeNode):
                 if (node.__class__.__name__ == "Component"):
                     childShortestDist = _distance(
                         childShortestPoint.point.get_center())
+                elif (node.__class__.__name__ == "Pin"):
+                    childShortestDist = _distance(
+                        childShortestPoint.point.parent.get_center())
                 else:
                     childShortestDist = _distance(
                         childShortestPoint.point.get_coordinates())
@@ -307,7 +410,7 @@ class NetTreeNode(GenericTreeNode):
                     shortestDist = childShortestDist
             
             return shortestPoint
-        # End of function
+        # End of inner function
 
         return _recursive_nearest_search(self)
     # End of method
@@ -327,8 +430,10 @@ class Net:
 
     connectionsTree: NetTreeNode = None
 
-    def __init__(self, name:str, source:(IOPort|Component),
-                 drain:list[IOPort|Component]):
+    def __init__(
+            self, name:str, source:(IOPort|Component),
+            drain:list[IOPort|Component]
+        ) -> None:
         self._name = name
         self._source = source
         self._drain = drain
@@ -374,8 +479,10 @@ class Core(RectangleDesignElement):
     _components: list[Component] = []
     _nets: list[Net] = []
 
-    def __init__(self, coreUtil:int, width:float, height:float,
-                 aspectRatio:float, xOffset:float, yOffset:float):
+    def __init__(
+            self, coreUtil:int, width:float, height:float,
+            aspectRatio:float, xOffset:float, yOffset:float
+        ) -> None:
         super().__init__("Core", 0, 0, width, height)
         self._coreUtil = coreUtil
         self._aspectRatio = aspectRatio
@@ -539,7 +646,7 @@ class Bins:
 
     @property
     def size(self) -> tuple[int, int]:
-        "Size of bins array"
+        "Size of bins array (y,x)"
         return self._size
     # End of method
 
@@ -639,31 +746,37 @@ class Design:
     # End of method
 
     def remove_bins(self):
+        """Removes bins from the design"""
         del self.bins
         del self.elementBins
         self.isRouted = False
 
     def _update_bins(self):
         binsSize = self._bins.size
-        binWidth = (self._core.width + 2 *self._core.x_offset) / binsSize[0]
-        binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[1]
+        binWidth = (self._core.width + 2 *self._core.x_offset) / binsSize[1]
+        binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[0]
 
         # For the IO Ports
         for port in self._core.ioPorts:
             x,y = port.get_coordinates()
-            bin = (int(y/binHeight), int(x/binWidth))
+            xBin = int(x/binWidth)
+            if (xBin == binsSize[1]): xBin -= 1
+            yBin = int(y/binHeight)
+            if (yBin == binsSize[0]): yBin -= 1
+            bin = (yBin,xBin)
             port.bin = bin
             self._elementBins[bin] += 1
         # For the Components
         for comp in self._core.components:
             x,y = comp.get_coordinates()
-            w,h = comp.get_dimentions()
+            w,h = comp.get_dimensions()
             bin = (int((y + h/2)/binHeight), int((x + w/2)/binWidth))
             comp.bin = bin
             self._elementBins[bin] += 1
     # End of method
     
     def find_bin(self, coords:tuple[float, float]):
+        """Returns the bin for the given coordinates"""
         binsSize = self._bins.size
         binWidth = (self._core.width + 2 *self._core.x_offset) / binsSize[0]
         binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[1]
@@ -674,7 +787,8 @@ class Design:
 
 
 def get_center_coordinates(
-        point:(IOPort|Component|NetPoint)) -> tuple[float,float]:
+        point:(IOPort|Component|NetPoint)
+    ) -> tuple[float,float]:
     """
     Gets the coordinates of the point or its center, 
     if the point is a components

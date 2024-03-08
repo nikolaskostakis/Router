@@ -6,24 +6,27 @@ STRUCTS = structures
 UI = ui
 PYCACHE = __pycache__
 
-.PHONY: run run_win help help_win
+.PHONY: run run_win help help_win clean clean_win
 
-# Linux runs
+ARGS:
+	@echo "Use parameter 'ARGS=' to pass arguments on the run"
+	@echo "Example: make run ARGS='-i input.txt'"
+
+# Linux Run
 run:
-	python3 ./$(SRC)/$(ROUTER)/router.py
-
+	python3 ./$(SRC)/$(ROUTER)/router.py ${ARGS}
+# Linux Help
 help:
 	python3 ./$(SRC)/$(ROUTER)/router.py -h
 
-# Windows runs
+# Windows Run
 run_win:
-	python .\$(SRC)\$(ROUTER)\router.py
-
+	python .\$(SRC)\$(ROUTER)\router.py $(ARGS)
+# Windows Help
 help_win:
 	python .\$(SRC)\$(ROUTER)\router.py -h
 
 # Cleanups
-.PHONY: clean clean_win
 # Cleanup for linux executions
 clean:
 	rm -rf ./$(SRC)/$(ROUTER)/$(PYCACHE)

@@ -494,6 +494,7 @@ class TclInterpreter:
                     result = self._evaluate_command(line)
         except IOError:
             interfaceLogger.error(f"There is no file: {script}")
+            return
 
         if result == "Finish":
             print("Goodbye!")

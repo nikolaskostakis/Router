@@ -133,7 +133,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
 
         # Rows
         line = file.readline().rstrip()
-        if (line != "# Rows"): return False
+        if ((line != "# Rows") & (line != "# Rows:")): return False
 
         # Loop through the rows
         line = file.readline().rstrip()
@@ -143,8 +143,9 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
 
             splits = re.split(" ", line)
             if((len(splits) != 10) | (not line.startswith("Row: "))
-                    | (" Type: " not in line) | (" Location: " not in line)
-                    | (" Width/Height: " not in line)):
+                | (" Type: " not in line) | (" Location: " not in line)
+                | (" Width/Height: " not in line)
+            ):
                 return False
             
             name = splits[1]
@@ -165,7 +166,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
                 height = float(splits[9])
             except ValueError:
                 parsersLogger.exception(
-                    "Row dimentions are supposed to be floating-point numbers")
+                    "Row dimensions are supposed to be floating-point numbers")
                 return False
             except:
                 parsersLogger.exception(
@@ -188,7 +189,10 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
 
         # Top-Level I/O Ports
         line = file.readline().rstrip()
-        if (line != "# Top-Level I/O Ports"): return False
+        if ((line != "# Top-Level I/O Ports")
+            & (line != "# Top-Level I/O Ports:")
+        ):
+            return False
 
         # Loop through the IO ports
         line = file.readline().rstrip()
@@ -197,8 +201,10 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
             if (line == HASH_LINE): break
 
             splits = re.split(" ", line)
-            if ((len(splits) != 5) | (not line.startswith("IO: "))
-                    | (" Location: " not in line)):
+            if (
+                (len(splits) != 5) | (not line.startswith("IO: "))
+                | (" Location: " not in line)
+            ):
                 return False
             name = splits[1]
             try:
@@ -217,8 +223,9 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
             sides = ["EAST", "WEST", "NORTH", "SOUTH"]
             line = file.readline().rstrip()
             splits = re.split(" ", line)
-            if ((len(splits) != 3) | (splits[0] != "#") | (splits[2] != "SIDE")
-                    | (splits[1] not in sides)):
+            if ((len(splits) != 3) | (splits[0] != "#")
+                | (splits[2] != "SIDE") | (splits[1] not in sides)
+            ):
                 return False
             side = splits[1]
 
@@ -233,29 +240,53 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
         return True
     # End of function
 
-    def _create_component(name:str) -> Component:
+    def _create_component(
+            name:str, type:str = None, timingType:str = None,
+            width:float = None, height:float = None
+        ) -> Component:
         """Searches if component exists in design and if not creates it"""
         # Check  if component exists
         newComponent: Component = design.core.get_component(name)
         if (not newComponent):
             # If component does not exist
             # Crate new component
-            newComponent = Component(name)
+            if (
+                (type is not None) & (timingType is not None)
+                & (width is not None) & (height is not None)
+            ):
+                newComponent = Component(name, type, timingType, width, height)
+            else:
+                newComponent = Component(name)
 
             # Add new component to the design
             design.core.add_component(newComponent)
+        else:
+            if (
+                (type is not None) & (timingType is not None)
+                & (width is not None) & (height is not None)
+            ):
+                newComponent.set_dimensions(width, height)
+                newComponent.cellType = type
+                newComponent.timingType = timingType
 
         return newComponent
     # End of function
 
-    def _create_net(source, components) -> Net:
+    def _create_net(source:(IOPort|Component), components:list[str]) -> Net:
         """Creates a net from given source and components"""
         name = "N%d" % (design.core.noof_nets() + 1)
         newDrain = []
+
         for comp in components:
-            # Add component to the list of endpoints of the net
-            newComp = _create_component(comp)
-            newDrain.append(newComp)
+            if (comp.startswith("(") & comp.endswith(")")):
+                pin = comp.lstrip("(").rstrip(")")
+                previousComp.add_pin(f"{previousComp.name}{pin}")
+            else:
+                # Add component to the list of endpoints of the net
+                newComp = _create_component(comp)
+                newDrain.append(newComp)
+
+                previousComp = newComp
         
         # Add new net to the design
         return Net(name, source, newDrain)
@@ -266,7 +297,8 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
 
         # Top-Level I/O CCs
         line = file.readline().rstrip()
-        if (line != "# Top-Level I/O CCs"): return False
+        if ((line != "# Top-Level I/O CCs") & (line != "# Top-Level I/O CCs:")):
+            return False
 
         # Loop through the IO CCSs
         line = file.readline().rstrip()
@@ -275,8 +307,9 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
             if (line == HASH_LINE): break
 
             splits = re.split(" ", line)
-            if((len(splits) < 3) | (splits[0] != "IO:")
-               | (splits[2] != "CCs:")):
+            if(
+                (len(splits) < 3) | (splits[0] != "IO:")| (splits[2] != "CCs:")
+            ):
                 return False
 
             # If there are no connections to this port
@@ -300,7 +333,8 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
 
         # Component CCs
         line = file.readline().rstrip()
-        if (line != "# Component CCs"): return False
+        if ((line != "# Component CCs") & (line != "# Components CCs:")):
+            return False
 
         # Loop through the components
         line = file.readline().rstrip()
@@ -309,11 +343,67 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
                 break
         
             splits = re.split(" ", line)
-            name = splits[1]
-            
-            source = _create_component(name)
-            newNet = _create_net(source, splits[3:(len(splits))])
-            design.core.add_net(newNet)
+            if (len(splits) >= 3):
+                if((splits[0] == "Component:") & (splits[2] == "CCs:")):
+                    name = splits[1]
+                    
+                    source = _create_component(name)
+                    newNet = _create_net(source, splits[3:(len(splits))])
+                    design.core.add_net(newNet)
+                elif (
+                    (len(splits) == 8) & (splits[2] == "Output")
+                    & (splits[3] == "Pin:") & (splits[5] == "Boolean")
+                    & (splits[6] == "Function:")
+                ):
+                    name = splits[1].rstrip(",")
+
+                    if (name != previousComp):
+                        parsersLogger.error(
+                            "File does not follow practical format syntax"
+                        )
+                        return False
+
+                elif (len(splits) >= 11):
+                    if((splits[0] == "Component:") & (splits[2] == "Cell_Type:")
+                        & (splits[4] == "Cell_Timing_Type:")
+                        & (splits[6] == "Width:") & (splits[8] == "Height:")
+                        & (splits[10] == "CCs:")
+                    ):
+                        name = splits[1]
+                        type = splits[3]
+                        timingType = splits[5]
+                        try:
+                            width = float(splits[7])
+                            height = float(splits[9])
+                        except ValueError:
+                            parsersLogger.exception(
+                                "Component dimensions are supposed"\
+                                " to be floating-point numbers"
+                            )
+                            return False
+                        except:
+                            parsersLogger.exception(
+                                "File does not follow practical format syntax")
+                            return False
+                        source = _create_component(
+                            name, type, timingType, width, height
+                        )
+                        newNet = _create_net(source, splits[11:(len(splits))])
+                        design.core.add_net(newNet)
+
+                        previousComp = name
+                    else:
+                        parsersLogger.error(
+                            "File does not follow practical format syntax")
+                        return False
+                else:
+                    parsersLogger.error(
+                        "File does not follow practical format syntax")
+                    return False
+            else:
+                parsersLogger.error(
+                    "File does not follow practical format syntax")
+                return False
 
             line = file.readline().rstrip()
         return True

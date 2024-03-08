@@ -43,7 +43,7 @@ class GUI(Tk):
     def __draw_rows(self):
         for i in range(self._design.core.noof_rows()):
             x, y = self._design.core.rows[i].get_coordinates()
-            width, height = self._design.core.rows[i].get_dimentions()
+            width, height = self._design.core.rows[i].get_dimensions()
             
             x = x * self._ratio + self._offset
             y = y * self._ratio + self._offset
@@ -69,7 +69,7 @@ class GUI(Tk):
 
             for i in range(self._design.core.noof_components()):
                 x, y = self._design.core.components[i].get_coordinates()
-                width, height = self._design.core.components[i].get_dimentions()
+                width, height = self._design.core.components[i].get_dimensions()
                 
                 x = x * self._ratio + self._offset
                 y = y * self._ratio + self._offset
@@ -98,7 +98,7 @@ class GUI(Tk):
             return
         x1, y1 = node.point.get_coordinates()
         if (node.point.__class__.__name__ == "Component"):
-            w1, h1 = node.point.get_dimentions()
+            w1, h1 = node.point.get_dimensions()
         else:
             w1 = 0
             h1 = 0
@@ -113,7 +113,7 @@ class GUI(Tk):
         for child in node.children:
             x2, y2 = child.point.get_coordinates()
             if (child.point.__class__.__name__ == "Component"):
-                w2, h2 = child.point.get_dimentions()
+                w2, h2 = child.point.get_dimensions()
             else:
                 w2 = 0
                 h2 = 0
@@ -144,7 +144,7 @@ class GUI(Tk):
                         w1 = 0
                         h1 = 0
                     else:
-                        w1, h1 = net.source.get_dimentions()
+                        w1, h1 = net.source.get_dimensions()
 
                     x1 = x1 * self._ratio + self._offset
                     y1 = y1 * self._ratio + self._offset
@@ -156,7 +156,7 @@ class GUI(Tk):
 
                     for dr in net.drain:
                         x2, y2 = dr.get_coordinates()
-                        w2, h2 = dr.get_dimentions()
+                        w2, h2 = dr.get_dimensions()
 
                         x2 = x2 * self._ratio + self._offset
                         y2 = y2 * self._ratio + self._offset
@@ -192,7 +192,7 @@ class GUI(Tk):
                     w1 = 0
                     h1 = 0
                 else:
-                    w1, h1 = net.source.get_dimentions()
+                    w1, h1 = net.source.get_dimensions()
 
                 x1 = x1 * self._ratio + self._offset
                 y1 = y1 * self._ratio + self._offset
@@ -204,7 +204,7 @@ class GUI(Tk):
 
                 for dr in net.drain:
                     x2, y2 = dr.get_coordinates()
-                    w2, h2 = dr.get_dimentions()
+                    w2, h2 = dr.get_dimensions()
 
                     x2 = x2 * self._ratio + self._offset
                     y2 = y2 * self._ratio + self._offset
@@ -237,7 +237,7 @@ class GUI(Tk):
         if self.show_bins:
             binsY, binsX = self._design.bins.size
 
-            coreWidth, coreHeight = self._design.core.get_dimentions()
+            coreWidth, coreHeight = self._design.core.get_dimensions()
             coreWidth += 2 * self._design.core.x_offset
             coreHeight += 2 * self._design.core.y_offset
 
@@ -275,7 +275,7 @@ class GUI(Tk):
             return
         
 
-        coreWidth, coreHeight = self._design.core.get_dimentions()
+        coreWidth, coreHeight = self._design.core.get_dimensions()
         coreWidth += 2 * self._design.core.x_offset
         coreHeight += 2 * self._design.core.y_offset
         xRatio = (self._width - 2 * self._offset) / coreWidth
