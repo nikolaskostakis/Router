@@ -23,6 +23,7 @@ from place_and_route.routing import calculate_net_tree_wirelength
 interfaceLogger = logging.getLogger(__name__)
 interfaceLogger.setLevel(logging.DEBUG)
 interfaceLogger.addHandler(config.consoleHandler)
+interfaceLogger.addHandler(config.logfileHandler)
 
 # Colors
 CYAN   = "\x1B[36m"
@@ -123,7 +124,7 @@ class TclInterpreter:
     # End of method
 
     # Completer
-    def _completer(self, text, state):
+    def _completer(self, text, state) -> list[str]:
         # TODO: Expand completer with files and command flags (optional)
         results = [x for x in self._commands if x.startswith(text)] + [None]
         return results[state]
@@ -346,11 +347,9 @@ class TclInterpreter:
                     interfaceLogger.error(f"There is no net {args[0]}")
                     return False
                 else:
+                    interfaceLogger.info(net)
                     if (net.connectionsTree is not None):
-                        interfaceLogger.info(f"Net: {net.name}")
                         print_generic_tree(net.connectionsTree)
-                    else:
-                        interfaceLogger.info(net)
                     return True
         else:
             raise TclError

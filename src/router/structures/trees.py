@@ -8,6 +8,7 @@ import config
 treesLogger = logging.getLogger(__name__)
 treesLogger.setLevel(logging.DEBUG)
 treesLogger.addHandler(config.consoleHandler)
+treesLogger.addHandler(config.logfileHandler)
 
 # Class GenericTreeNode
 class GenericTreeNode:

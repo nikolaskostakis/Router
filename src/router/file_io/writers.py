@@ -13,6 +13,7 @@ from structures.design_components import Component
 writersLogger = logging.getLogger(__name__)
 writersLogger.setLevel(logging.DEBUG)
 writersLogger.addHandler(config.consoleHandler)
+writersLogger.addHandler(config.logfileHandler)
 
 def write_component_positions(file:TextIOWrapper,
                               designName:str,

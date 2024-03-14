@@ -14,6 +14,7 @@ from structures.design_components import Design, Row, IOPort, Component, Net
 parsersLogger = logging.getLogger(__name__)
 parsersLogger.setLevel(logging.DEBUG)
 parsersLogger.addHandler(config.consoleHandler)
+parsersLogger.addHandler(config.logfileHandler)
 
 #class PracticalFormatParser:
 def practical_format_parcer(file:TextIOWrapper) -> Design:

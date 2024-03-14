@@ -18,7 +18,7 @@ class GUI(Tk):
 
     _design: Design = None
 
-    _width = 1010
+    _width = 1030
     _height = 860
     _CanvasWidth = 850
     _CanvasHeight = 850
@@ -278,8 +278,8 @@ class GUI(Tk):
         coreWidth, coreHeight = self._design.core.get_dimensions()
         coreWidth += 2 * self._design.core.x_offset
         coreHeight += 2 * self._design.core.y_offset
-        xRatio = (self._width - 2 * self._offset) / coreWidth
-        yRatio = (self._height - 2 * self._offset) / coreHeight
+        xRatio = (self._CanvasWidth - 2 * self._offset) / coreWidth
+        yRatio = (self._CanvasHeight - 2 * self._offset) / coreHeight
         self._ratio = xRatio if (xRatio <= yRatio) else yRatio
 
         # Core

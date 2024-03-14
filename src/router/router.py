@@ -82,6 +82,7 @@ class Router:
         if self._arguments.debug:
             config.loggingLevel = logging.DEBUG
             config.consoleHandler.setLevel(config.loggingLevel)
+            config.logfileHandler.setLevel(config.loggingLevel)
     # End of method
 
     def run(self) -> None:

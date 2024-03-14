@@ -12,6 +12,7 @@ from structures.design_components import Core, Component
 placementLogger = logging.getLogger(__name__)
 placementLogger.setLevel(logging.DEBUG)
 placementLogger.addHandler(config.consoleHandler)
+placementLogger.addHandler(config.logfileHandler)
 
 MAX_RANDOM_TRIES = 100000
 

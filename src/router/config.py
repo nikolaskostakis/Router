@@ -24,3 +24,8 @@ consoleHandler = logging.StreamHandler(sys.stdout)
 """Console handler for logging messages shown in the stdout"""
 consoleHandler.setLevel(loggingLevel)
 consoleHandler.setFormatter(simpleFormatter)
+
+logfileHandler = logging.FileHandler(filename="data\\router.log")
+"""File handler for logging messages in a log file"""
+logfileHandler.setLevel(loggingLevel)
+logfileHandler.setFormatter(detailedFormatter)

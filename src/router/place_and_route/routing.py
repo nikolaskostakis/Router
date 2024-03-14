@@ -15,6 +15,7 @@ from structures.design_components import get_center_coordinates
 routingLogger = logging.getLogger(__name__)
 routingLogger.setLevel(logging.DEBUG)
 routingLogger.addHandler(config.consoleHandler)
+routingLogger.addHandler(config.logfileHandler)
 
 def maze_routing(design: Design, clockwiseRouting = True) -> None:
     def _propagate_wave():
@@ -229,8 +230,8 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
         def _expand_connections_tree(
                 point:NetTreeNode,
                 endpoint:(IOPort | Component),
-                pointNum:int
             ):
+            nonlocal pointNum
             """Adds new point between endpoint and existing point"""
             px, py = get_center_coordinates(point.point)
             ex, ey = get_center_coordinates(endpoint)
@@ -292,6 +293,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
         nonlocal pointNum
         nonlocal connectionsTree
         pointsOnBin = connectionsTree.find_points_on_bin(activeBin)
+        routingLogger.debug(f" <> {binsQueue} {pointsOnBin}")
         match len(binsQueue):
             case 0:
                 match len(pointsOnBin):
@@ -314,24 +316,30 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                     case 1:
                         parent = pointsOnBin.pop()
 
-                        if ((parent.point.x == endpoint.x)
-                            | (parent.point.y == endpoint. y)):
+                        px, py = get_center_coordinates(parent.point)
+                        ex, ey = get_center_coordinates(endpoint)
+
+                        if ((px == ex) | (py == ey)):
+                            routingLogger.debug("ha")
                             parent.add_child(
                                 NetTreeNode(endpoint.name, endpoint))
                         else:
-                            _expand_connections_tree(parent, endpoint, pointNum)
+                            routingLogger.debug("ho")
+                            _expand_connections_tree(parent, endpoint)
                             
                     case multiplePoints:
                         pointsOnBin.sort(
                             key=lambda dr: _distance_netNodes_sqrd(dr.point))
                         parent = pointsOnBin.pop(0)
 
-                        if ((parent.point.x == endpoint.x)
-                            | (parent.point.y == endpoint. y)):
+                        px, py = get_center_coordinates(parent.point)
+                        ex, ey = get_center_coordinates(endpoint)
+
+                        if ((px == ex) | (py == ey)):
                             parent.add_child(
                                 NetTreeNode(endpoint.name, endpoint))
                         else:
-                            _expand_connections_tree(parent, endpoint, pointNum)
+                            _expand_connections_tree(parent, endpoint)
             case 1:
                 point = binsQueue.pop()
                 match len(pointsOnBin):
