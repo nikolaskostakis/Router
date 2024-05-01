@@ -78,9 +78,9 @@ class GUI(Tk):
 
                 self._canvas.create_rectangle(x, y, (width+x), (height+y),
                                               outline="blue", tags="comp")
-                #self._canvas.create_text((x + (width / 2)), (y + (height / 2)),
-                #                         text=self._design.core.components[i].name,
-                #                         fill="blue", width=width, tags="comp")
+                self._canvas.create_text((x + (width / 2)), (y + (height / 2)),
+                                         text=self._design.core.components[i].name,
+                                         fill="blue", width=width, tags="comp")
         else:
             self._canvas.delete("comp")
             self._canvas.delete("nets")
@@ -125,8 +125,7 @@ class GUI(Tk):
             x2 += w2/2
             y2 += h2/2
 
-            self._canvas.create_line(x1,y1,x2,y2,
-                                     fill=color, tags=lineTags)
+            self._canvas.create_line(x1, y1, x2, y2, fill=color, tags=lineTags)
             self._recursive_net_drawing(child, color, tags)
     # End of method
 
@@ -170,6 +169,10 @@ class GUI(Tk):
                                                 fill="black",
                                                 tags=["nets","P2P"])
                 else:
+                    if (net.connectionsTree is None):
+                        messagebox.showinfo("Tree view", 
+                                f"There is no tree connection for net {net.name}")
+                        continue
                     self._recursive_net_drawing(net.connectionsTree)
         else:
             if (drawP2P):
@@ -218,7 +221,7 @@ class GUI(Tk):
                                             fill="purple",
                                             tags=["nets","P2P", "highlight"])
             else:
-                if not self._design.isRouted:
+                if not net.connectionsTree:
                     messagebox.showinfo("Tree view", 
                                     "There is no tree view. Run routing first!")
                 else:
@@ -406,30 +409,36 @@ class GUI(Tk):
             command= lambda:self._bins_heatmap(self._design.elementBins)
         )
         elementBinsHeatmapButton.grid(row=5, column=0, columnspan=2, sticky="N")
-        
+    
+        blockagesHeatmapButton = Button(
+            self._buttonsFrame,text="Blockages Heatmap", width=20,
+            command= lambda:self._bins_heatmap(self._design.blockages)
+        )
+        blockagesHeatmapButton.grid(row=6, column=0, columnspan=2, sticky="N")
+
         seperator = Separator(self._buttonsFrame, orient='horizontal')
-        seperator.grid(row=6, column=0, columnspan=2, sticky="EW", pady=5)
+        seperator.grid(row=7, column=0, columnspan=2, sticky="EW", pady=5)
 
         self.netSearch = Entry(self._buttonsFrame, width=10)
-        self.netSearch.grid(row=7, column=1, sticky="N")
+        self.netSearch.grid(row=8, column=1, sticky="N")
 
         higlightTreeButton = Button(
             self._buttonsFrame, text="Highlight Tree", height=1,
             command= lambda:self._highlight_net(drawP2P=False),width= 10
         )
-        higlightTreeButton.grid(row=7, column=0, sticky="N")
+        higlightTreeButton.grid(row=8, column=0, sticky="N")
 
         highlightP2PButton = Button(
             self._buttonsFrame, text="Highlight P2P", height=1,
             command= lambda:self._highlight_net(),width= 10
         )
-        highlightP2PButton.grid(row=8, column=0, sticky="N")
+        highlightP2PButton.grid(row=9, column=0, sticky="N")
 
         clearHighlightButton = Button(
             self._buttonsFrame, text="Clear", height=1,
             command=lambda:self._clear_highlight(),width= 10
         )
-        clearHighlightButton.grid(row=8, column=1, sticky="N")
+        clearHighlightButton.grid(row=9, column=1, sticky="N")
     # End of method
 
     def _draw_gui(self):

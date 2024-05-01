@@ -18,6 +18,7 @@ from place_and_route.placement import random_placer
 from place_and_route.routing import maze_routing, calculate_tree_wirelength
 from place_and_route.routing import calculate_HPWL, calculate_net_HPWL
 from place_and_route.routing import calculate_net_tree_wirelength
+from place_and_route.routing import maze_routing_net
 
 # Logging
 interfaceLogger = logging.getLogger(__name__)
@@ -56,10 +57,12 @@ class TclInterpreter:
         "load_components_coords", "save_components_coords", "design_info",
         # Bins
         "bins_info", "create_bins", "remove_bins",
+        # Bloackages
+        "add_blockage", "remove_blockage",
         # Placement
         "place_random",
         # Routing
-        "maze_routing",
+        "maze_routing", "maze_routing_net",
         # Nets
         "net_info",
         # Wirelength
@@ -94,6 +97,7 @@ class TclInterpreter:
 
     # Tcl Command creation
     def _create_Tcl_commands(self):
+        self._tcl.createcommand("add_blockage", self._add_blockage)
         self._tcl.createcommand("bins_info", self._bins_info)
         self._tcl.createcommand("calculate_WL", self._calculate_WL)
         self._tcl.createcommand("calculate_net_WL", self._calculate_net_WL)
@@ -109,10 +113,12 @@ class TclInterpreter:
             self._load_components_coords
         )
         self._tcl.createcommand("maze_routing", self._maze_routing)
+        self._tcl.createcommand("maze_routing_net", self._maze_routing_net)
         self._tcl.createcommand("net_info", self._net_info)
         self._tcl.createcommand("place_random", self._place_random)
         self._tcl.createcommand("read_design", self._read_design)
         self._tcl.createcommand("remove_bins", self._remove_bins)
+        self._tcl.createcommand("remove_blockage", self._remove_blockage)
         self._tcl.createcommand("remove_design", self._remove_design)
         self._tcl.createcommand("save_design", self._save_design)
         self._tcl.createcommand(
@@ -131,6 +137,42 @@ class TclInterpreter:
     # End of method
 
     # Tcl Commands
+    def _add_blockage(self, *args):
+        commandFormat = "add_blockage [-h | -bin x y]"
+        commandDescription = "Adds blockage to the given bin (x,y)"
+
+        if ((len(args) == 1) & (args[0] == "-h")):
+            print(f"{commandFormat}\n{commandDescription}")
+            return True
+        elif ((len(args) == 3) & (args[0] == "-bin")):
+            if not self._design:
+                interfaceLogger.info("There is no design loaded")
+                return
+            if not self._design.blockages:
+                interfaceLogger.info("There are no bins for routing to be done")
+                return
+            try:
+                x = int(args[1])
+                y = int(args[2])
+            except ValueError:
+                interfaceLogger.error(
+                    "Dimentions for bins are ment to be integers")
+                return False
+            
+            size  = self._design.blockages.size
+            if (((x < 0) | (x >= size[1])) | ((y < 0) | (y >= size[0]))):
+                interfaceLogger.error("Bin coordinates are out-of-bound")
+                return False
+
+            if (self._design.blockages[y][x] > 0):
+                interfaceLogger.info("There is already a blockage in this bin")
+                return
+            self._design.blockages[y][x] += 1
+            interfaceLogger.info(f"Blockage added to bin ({y},{x})")
+        else:
+            raise TclError
+    # End of method
+
     def _bins_info(self):
         if not self._design.bins:
             interfaceLogger.info("There are no bins created")
@@ -299,7 +341,7 @@ class TclInterpreter:
 
     def _maze_routing(self, *args) -> bool:
         commandFormat = "maze_routing [-h | -counterclockwise]"
-        commandDescription = "Displays information about a net"
+        commandDescription = "Routing"
         if (len(args) == 1):
             if (args[0] == "-h"):
                 print(f"{commandFormat}\n{commandDescription}")
@@ -327,6 +369,47 @@ class TclInterpreter:
                 return
 
             maze_routing(self._design)
+        else:
+            raise TclError
+    # End of method
+
+    def _maze_routing_net(self, *args) -> bool:
+        commandFormat = "maze_routing_net [-h | net [-counterclockwise]]"
+        commandDescription = "Routing specific net"
+        if (len(args) == 1):
+            if (args[0] == "-h"):
+                print(f"{commandFormat}\n{commandDescription}")
+                return True
+            else:
+                if not self._design:
+                    interfaceLogger.info("There is no design loaded")
+                    return
+                net:Net = self._design.core.get_net(args[0])
+                if (not net):
+                    interfaceLogger.error(f"There is no net {args[0]}")
+                    return False
+                else:
+                    maze_routing_net(net, self._design)
+                    return True
+        elif (len(args) == 2):
+            if (args[1] == "-counterclockwise"):
+                if not self._design:
+                    interfaceLogger.info("There is no design loaded")
+                    return
+
+                if not self._design.bins:
+                    interfaceLogger.info("There are no bins for routing to be done")
+                    return
+
+                net:Net = self._design.core.get_net(args[0])
+                if (not net):
+                    interfaceLogger.error(f"There is no net {args[0]}")
+                    return False
+                else:
+                    maze_routing_net(net, self._design, clockwiseRouting=False)
+                    return True
+            else:
+                raise TclError
         else:
             raise TclError
     # End of method
@@ -397,6 +480,42 @@ class TclInterpreter:
             interfaceLogger.info("Bins Removed")
         else:
             interfaceLogger.info("There are no bins to be removed")
+    # End of method
+
+    def _remove_blockage(self, * args):
+        commandFormat = "remove_blockage [-h | -bin x y]"
+        commandDescription = "Removes blockage from the given bin (x,y)"
+
+        if ((len(args) == 1) & (args[0] == "-h")):
+            print(f"{commandFormat}\n{commandDescription}")
+            return True
+        elif ((len(args) == 3) & (args[0] == "-bin")):
+            if not self._design:
+                interfaceLogger.info("There is no design loaded")
+                return
+            if not self._design.blockages:
+                interfaceLogger.info("There are no bins for routing to be done")
+                return
+            try:
+                x = int(args[1])
+                y = int(args[2])
+            except ValueError:
+                interfaceLogger.error(
+                    "Dimentions for bins are ment to be integers")
+                return False
+            
+            size  = self._design.blockages.size
+            if (((x < 0) | (x >= size[1])) | ((y < 0) | (y >= size[0]))):
+                interfaceLogger.error("Bin coordinates are out-of-bound")
+                return False
+
+            if (self._design.blockages[y][x] == 0):
+                interfaceLogger.info("There is no blockage in this bin")
+                return
+            self._design.blockages[y][x] = 0
+        else:
+            raise TclError
+    # End of method
 
     def _remove_design(self):
         if (self._design != None):

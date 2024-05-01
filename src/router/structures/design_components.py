@@ -1,11 +1,19 @@
 """
 Module housing the design components used for the router
 """
+import logging
 
 import numpy as np
 from numpy import ndarray
 
+import config
 from .trees import GenericTreeNode
+
+# Logging
+designCompLogger = logging.getLogger(__name__)
+designCompLogger.setLevel(logging.DEBUG)
+designCompLogger.addHandler(config.consoleHandler)
+designCompLogger.addHandler(config.logfileHandler)
 
 # Class BaseDesignElement
 class BaseDesignElement:
@@ -312,6 +320,13 @@ class NetPoint(BaseDesignElement):
 
     def __init__(self, name: str, x: float, y: float) -> None:
         super().__init__(name, x, y)
+    # End of method
+
+    def __repr__(self) -> None:
+        rep_str =  f"Point {self._name} Location: {self._x:.3f} {self._y:.3f}"
+        if self._bin:
+            rep_str += f" Bin: {self._bin}"
+        return rep_str
     # End of method
 
     @property
@@ -682,6 +697,8 @@ class Design:
     """Routing Bins"""
     _elementBins: Bins = None
 
+    _blockages: Bins = None
+
     _isRouted: bool = None
 
     def __init__(self, name:str, comments:str) -> None:
@@ -719,7 +736,12 @@ class Design:
     def elementBins(self) -> Bins:
         return self._elementBins
     # End of method
-    
+
+    @property
+    def blockages(self) -> Bins:
+        return self._blockages
+    # End of method
+
     @property
     def isRouted(self) -> bool:
         return self._isRouted
@@ -743,12 +765,15 @@ class Design:
         self._elementBins = Bins(width, height)
         self._update_bins()
         self._isRouted = False
+
+        self._blockages = Bins(width, height)
     # End of method
 
     def remove_bins(self):
         """Removes bins from the design"""
-        del self.bins
-        del self.elementBins
+        del self._bins
+        del self._elementBins
+        del self._blockages
         self.isRouted = False
 
     def _update_bins(self):
@@ -778,10 +803,20 @@ class Design:
     def find_bin(self, coords:tuple[float, float]):
         """Returns the bin for the given coordinates"""
         binsSize = self._bins.size
-        binWidth = (self._core.width + 2 *self._core.x_offset) / binsSize[0]
-        binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[1]
+        binWidth = (self._core.width + 2 *self._core.x_offset) / binsSize[1]
+        binHeight = (self._core.height + 2 * self._core.y_offset) / binsSize[0]
 
         return (int(coords[1]/binHeight), int(coords[0]/binWidth))
+    # End of method
+
+    def find_center_of_bin(self, bin:tuple[int, int]) -> tuple[float, float]:
+        """(y,x) ->(x,y)"""
+        binsWidth = (self._core.width + 2 *self._core.x_offset) / self._bins.size[1]
+        binsHeight = (self._core.height + 2 * self._core.y_offset) / self._bins.size[0]
+
+        centerX = (binsWidth * bin[1]) + (binsWidth / 2)
+        centerY = (binsHeight * bin[0]) + (binsHeight / 2)
+        return (centerX, centerY)
     # End of method
 # End of class
 

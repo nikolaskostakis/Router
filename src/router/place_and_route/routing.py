@@ -17,11 +17,20 @@ routingLogger.setLevel(logging.DEBUG)
 routingLogger.addHandler(config.consoleHandler)
 routingLogger.addHandler(config.logfileHandler)
 
-def maze_routing(design: Design, clockwiseRouting = True) -> None:
+def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
+    """
+    Routing algorithm based on Lee's Maze Routing for a single net
+    """
+
     def _propagate_wave():
+        """
+        First stage of the maze routing algorithm.
+
+        Propagates wave from the source (existing net)
+        """
         
-        activeList = []
-        visitedList = []
+        activeList:list[tuple[int,int]] = []
+        visitedList:list[tuple[int,int]] = []
 
         activeList.extend(netBins)
 
@@ -37,6 +46,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         (north != drain)
                         & (north not in activeList)
                         & (north not in visitedList)
+                        & (design.blockages[north] == 0)
                     ):
                         activeList.append(north)
                         tempBinsArray[north] = tempBinsArray[activeBin] + 1
@@ -48,6 +58,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         (east != drain)
                         & (east not in activeList)
                         & (east not in visitedList)
+                        & (design.blockages[east] == 0)
                     ):
                         activeList.append(east)
                         tempBinsArray[east] = tempBinsArray[activeBin] + 1
@@ -59,6 +70,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         (south != drain)
                         & (south not in activeList)
                         & (south not in visitedList)
+                        & (design.blockages[south] == 0)
                     ):
                         activeList.append(south)
                         tempBinsArray[south] = tempBinsArray[activeBin] + 1
@@ -70,6 +82,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         (west != drain)
                         & (west not in activeList)
                         & (west not in visitedList)
+                        & (design.blockages[west] == 0)
                     ):
                         activeList.append(west)
                         tempBinsArray[west] = tempBinsArray[activeBin] + 1
@@ -84,6 +97,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         (north != drain)
                         & (north not in activeList)
                         & (north not in visitedList)
+                        & (design.blockages[north] == 0)
                     ):
                         activeList.append(north)
                         tempBinsArray[north] = tempBinsArray[activeBin] + 1
@@ -95,6 +109,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         (west != drain)
                         & (west not in activeList)
                         & (west not in visitedList)
+                        & (design.blockages[west] == 0)
                     ):
                         activeList.append(west)
                         tempBinsArray[west] = tempBinsArray[activeBin] + 1
@@ -106,6 +121,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         (south != drain)
                         & (south not in activeList)
                         & (south not in visitedList)
+                        & (design.blockages[south] == 0)
                     ):
                         activeList.append(south)
                         tempBinsArray[south] = tempBinsArray[activeBin] + 1
@@ -117,6 +133,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         (east != drain)
                         & (east not in activeList)
                         & (east not in visitedList)
+                        & (design.blockages[east] == 0)
                     ):
                         activeList.append(east)
                         tempBinsArray[east] = tempBinsArray[activeBin] + 1
@@ -127,6 +144,11 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
     # End of function
 
     def _backtrace():
+        """
+        Second stage of the maze routing algorithm.
+
+        Backtraces from the destination to the source.
+        """
         backtraceRoute = []
 
         activeBin = drain
@@ -141,7 +163,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                 # North
                 if (activeBin[0] != 0):
                     north = ((activeBin[0] - 1), activeBin[1])
-                    if (tempBinsArray[north] < value) & (north != drain):
+                    if (tempBinsArray[north] < value) & (north != drain) & (design.blockages[north] == 0):
                         nextBin = north
                         newDirection = "NORTH"
                         value = tempBinsArray[north]
@@ -149,7 +171,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                 # East
                 if ((activeBin[1] + 1) != size[1]):
                     east = (activeBin[0], (activeBin[1] + 1))
-                    if (tempBinsArray[east] < value) & (east != drain):
+                    if (tempBinsArray[east] < value) & (east != drain) & (design.blockages[east] == 0):
                         nextBin = east
                         newDirection = "EAST"
                         value = tempBinsArray[east]
@@ -157,7 +179,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                 # South
                 if ((activeBin[0] +1) != size[0]):
                     south = ((activeBin[0] + 1), activeBin[1])
-                    if (tempBinsArray[south] < value) & (south != drain):
+                    if (tempBinsArray[south] < value) & (south != drain) & (design.blockages[south] == 0):
                         nextBin = south
                         newDirection = "SOUTH"
                         value = tempBinsArray[south]
@@ -165,7 +187,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                 # West
                 if (activeBin[1] != 0):
                     west = (activeBin[0], (activeBin[1] - 1))
-                    if (tempBinsArray[west] < value) & (west != drain):
+                    if (tempBinsArray[west] < value) & (west != drain) & (design.blockages[west] == 0):
                         nextBin = west
                         newDirection = "WEST"
                         value = tempBinsArray[west]
@@ -267,7 +289,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                     ((nx == nnx) & (nx == px)
                         & (((py > ny) & (nny > ny)) | ((py < ny) & (nny < ny))))
                     | ((ny == nny) & (ny == py)
-                        & (((px > nx) & (nnx > nx)) | ((px < nx) & (nnx < ny))))
+                        & (((px > nx) & (nnx > nx)) | ((px < nx) & (nnx < nx))))
                 ):
                     parentNode.remove_child(node)
                     parentNode.add_child(newNode)
@@ -280,7 +302,7 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                     ((nx == nnx) & (nx == cx)
                         & (((cy > ny) & (nny > ny)) | ((cy < ny) & (nny < ny))))
                     | ((ny == nny) & (ny == cy)
-                        & (((cx > nx) & (nnx > nx)) | ((cx < nx) & (nnx < ny))))
+                        & (((cx > nx) & (nnx > nx)) | ((cx < nx) & (nnx < nx))))
                 ):
                     node.remove_child(child)
                     node.add_child(newNode)
@@ -320,11 +342,9 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         ex, ey = get_center_coordinates(endpoint)
 
                         if ((px == ex) | (py == ey)):
-                            routingLogger.debug("ha")
                             parent.add_child(
                                 NetTreeNode(endpoint.name, endpoint))
                         else:
-                            routingLogger.debug("ho")
                             _expand_connections_tree(parent, endpoint)
                             
                     case multiplePoints:
@@ -344,10 +364,37 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                 point = binsQueue.pop()
                 match len(pointsOnBin):
                     case 0:
-                        routingLogger.info(f"Empty bin {activeBin}")
                         nearestNode = connectionsTree.find_nearest_tree_node(
                             endpoint.get_coordinates())
-                        routingLogger.info(tempBinsArray)
+                        cx, cy = design.find_center_of_bin(point)
+
+                        nearestNode = connectionsTree.find_nearest_tree_node((cx, cy))
+                        nx, ny = get_center_coordinates(nearestNode.point)
+
+                        if (activeBin[0] == nearestNode.point.bin[0]):
+                            midPoint = NetPoint(f"{net.name}_{pointNum}", cx, ny)
+                        else:
+                            midPoint = NetPoint(f"{net.name}_{pointNum}", nx, cy)
+                        pointNum += 1
+
+                        midNode = NetTreeNode(midPoint.name,midPoint)
+                        midNode.bin = design.find_bin(midPoint.get_coordinates())
+                        _rearrange_tree(nearestNode, midNode)
+
+                        newPoint=NetPoint(f"{net.name}_{pointNum}",cx, cy)
+                        newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                        routingLogger.info(f"{newPoint}")
+                        newNode = NetTreeNode(newPoint.name,newPoint)
+                        midNode.add_child(newNode)
+                        pointNum += 1
+
+                        ex, ey = get_center_coordinates(endpoint)
+
+                        if (newNode.point.bin[0] == endpoint.bin[0]):
+                            newNode.point.y = ey
+                        else:
+                            newNode.point.x = ex
+                        newNode.add_child(NetTreeNode(endpoint.name, endpoint))
                     case 1:
                         parent = pointsOnBin.pop()
 
@@ -382,7 +429,135 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
                         newNode.add_child(NetTreeNode(endpoint.name, endpoint))
             case moreBTPoints:
                 routingLogger.info(f"More points from backtrace {moreBTPoints}")
-                routingLogger.info(tempBinsArray)
+                routingLogger.info(binsQueue)
+                match len(pointsOnBin):
+                    case 0:
+                        routingLogger.info("Zero points of the tree")
+                        pointBin = binsQueue.pop(0)
+                        cx, cy = design.find_center_of_bin(pointBin)
+
+                        nearestNode = connectionsTree.find_nearest_tree_node((cx, cy))
+                        nx, ny = get_center_coordinates(nearestNode.point)
+
+                        if (activeBin[0] == nearestNode.point.bin[0]):
+                            midPoint = NetPoint(f"{net.name}_{pointNum}", cx, ny)
+                        else:
+                            midPoint = NetPoint(f"{net.name}_{pointNum}", nx, cy)
+                        pointNum += 1
+
+                        midNode = NetTreeNode(midPoint.name,midPoint)
+                        midNode.point.bin = design.find_bin(midPoint.get_coordinates())
+                        _rearrange_tree(nearestNode, midNode)
+
+                        newPoint=NetPoint(f"{net.name}_{pointNum}",cx, cy)
+                        newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                        newNode = NetTreeNode(newPoint.name,newPoint)
+                        midNode.add_child(newNode)
+                        pointNum += 1
+
+                        parent = newNode
+                        for i in range(moreBTPoints - 1):
+                            routingLogger.info(f"Parent: {parent}")
+                            pointBin = binsQueue.pop(0)
+
+                            px, py = get_center_coordinates(parent.point)
+                            cx, cy = design.find_center_of_bin(pointBin)
+
+                            routingLogger.info(f"== {parent.point.bin} {pointBin}")
+                            if (parent.point.bin[0] == pointBin[0]):
+                                newPoint=NetPoint(f"{net.name}_{pointNum}",cx, py)
+                            else:
+                                newPoint=NetPoint(f"{net.name}_{pointNum}",px, cy)
+                            pointNum += 1
+                            newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                            newNode = NetTreeNode(newPoint.name,newPoint)
+                            parent.add_child(newNode)
+                            parent = newNode
+                            #
+                        ex, ey = get_center_coordinates(endpoint)
+
+                        if (parent.point.bin[0] == endpoint.bin[0]):
+                            parent.point.y = ey
+                        else:
+                            parent.point.x = ex
+                        parent.add_child(NetTreeNode(endpoint.name, endpoint))
+                    case 1:
+                        routingLogger.info("One point of the tree")
+                        parent = pointsOnBin.pop()
+                        for i in range(moreBTPoints):
+                            routingLogger.info(f"Parent: {parent}")
+                            pointBin = binsQueue.pop(0)
+
+                            px, py = get_center_coordinates(parent.point)
+                            cx, cy = design.find_center_of_bin(pointBin)
+
+                            if (parent.point.bin[0] == pointBin[0]):
+                                newPoint=NetPoint(f"{net.name}_{pointNum}",cx, py)
+                            else:
+                                newPoint=NetPoint(f"{net.name}_{pointNum}",px, cy)
+                            pointNum += 1
+                            newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                            newNode = NetTreeNode(newPoint.name,newPoint)
+                            parent.add_child(newNode)
+                            parent = newNode
+                            #
+                        ex, ey = get_center_coordinates(endpoint)
+
+                        if (parent.point.bin[0] == endpoint.bin[0]):
+                            parent.point.y = ey
+                        else:
+                            parent.point.x = ex
+                        parent.add_child(NetTreeNode(endpoint.name, endpoint))
+                    case multiplePoints:
+                        routingLogger.info(f"Multiple points: {multiplePoints}")
+
+                        pointBin = binsQueue.pop(0)
+                        cx, cy = design.find_center_of_bin(pointBin)
+                        pointsOnBin.sort(
+                            key=lambda dr: _distance_netNodes_sqrd(dr.point))
+                        parent = pointsOnBin.pop(0)
+                        routingLogger.info(f"parent: {parent}")
+                        routingLogger.info(f"point: {pointBin}")
+
+                        px, py = get_center_coordinates(parent.point)
+
+                        if (activeBin[0] == parent.point.bin[0]):
+                            newPoint = NetPoint(f"{net.name}_{pointNum}", cx, py)
+                        else:
+                            newPoint = NetPoint(f"{net.name}_{pointNum}", px, cy)
+                        pointNum += 1
+
+                        newNode = NetTreeNode(newPoint.name,newPoint)
+                        newNode.point.bin = design.find_bin(newPoint.get_coordinates())
+                        _rearrange_tree(parent, newNode)
+
+                        parent = newNode
+                        for i in range(moreBTPoints - 1):
+                            routingLogger.info(f"Parent: {parent}")
+                            pointBin = binsQueue.pop(0)
+
+                            px, py = get_center_coordinates(parent.point)
+                            cx, cy = design.find_center_of_bin(pointBin)
+
+                            routingLogger.info(f"== {parent.point.bin} {pointBin}")
+                            if (parent.point.bin[0] == pointBin[0]):
+                                newPoint=NetPoint(f"{net.name}_{pointNum}",cx, py)
+                            else:
+                                newPoint=NetPoint(f"{net.name}_{pointNum}",px, cy)
+                            pointNum += 1
+                            newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                            newNode = NetTreeNode(newPoint.name,newPoint)
+                            parent.add_child(newNode)
+                            parent = newNode
+                            #
+                        ex, ey = get_center_coordinates(endpoint)
+
+                        if (parent.point.bin[0] == endpoint.bin[0]):
+                            parent.point.y = ey
+                        else:
+                            parent.point.x = ex
+                        parent.add_child(NetTreeNode(endpoint.name, endpoint))
+
     # End of function
 
     def _distance_bins(bin):
@@ -390,6 +565,8 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
         return dist
     # End of function
 
+
+    # Function body
     if (design.isRouted):
         routingLogger.info("Design is already routed!")
         return
@@ -397,40 +574,73 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
     tempBinsArray = np.zeros(design.bins.size)
     size = design.bins.size
 
-    for net in design.core.nets:
-        pointNum = 1
-        routingLogger.debug(f"Net: {net.name}")
-        #net = design.core.nets[2]
-        sourceBin = net.source.bin
+    pointNum = 1
+    routingLogger.debug(f"Net: {net.name}")
 
-        connectionsTree = NetTreeNode(net.source.name, net.source)
-        netBins = [sourceBin]
+    sourceBin = net.source.bin
+    if (design.blockages[sourceBin] != 0):
+        routingLogger.warning(
+            f"Net {net.name} cannot be router due to source being into blockage"
+        )
+        return
 
-        net.drain.sort(key=lambda dr: _distance_bins(dr.bin))
+    connectionsTree = NetTreeNode(net.source.name, net.source)
+    netBins = [sourceBin]
 
-        for endpoint in net.drain:
-            routingLogger.debug(f"Endpoint: {endpoint}")
-            drain = endpoint.bin
-            binsQueue = []
-            _propagate_wave()
-            activeBin = _backtrace()
+    net.drain.sort(key=lambda dr: _distance_bins(dr.bin))
 
-            _connect_points()
+    for endpoint in net.drain:
+        if (endpoint == net.source):
+            continue
 
-            tempBinsArray.fill(0)
-        
-        for change in netBins:
-            design.bins[change] += 1
-        
-        routingLogger.debug("Routing completed")
-        net.connectionsTree = connectionsTree
+        routingLogger.debug(f"Endpoint: {endpoint}")
+        drain = endpoint.bin
+        if (design.blockages[drain] != 0):
+            routingLogger.warning(
+                f"In net {net.name}: Endpoint {endpoint.name} is into blockage"
+            )
+            continue
+
+        binsQueue: list[tuple[int,int]] = []
+        _propagate_wave()
+        activeBin = _backtrace()
+
+        _connect_points()
+
+        tempBinsArray.fill(0)
     # End of for loop
+
+    for change in netBins:
+        design.bins[change] += 1
     
+    routingLogger.debug(f"Routing net {net.name} completed")
+    net.connectionsTree = connectionsTree
+    
+# End of function
+
+def maze_routing(design: Design, clockwiseRouting = True) -> None:
+    """
+    Routing algorithm based on Lee's Maze Routing
+    """
+
+    if (design.isRouted):
+        routingLogger.info("Design is already routed!")
+        return
+
+    for net in design.core.nets:
+        maze_routing_net(net, design, clockwiseRouting)
+
     design.isRouted = True
+    routingLogger.debug("Routing completed")
 # End of function
 
 
 def calculate_net_HPWL(net:Net) -> float:
+    """
+    Calculates the net wirelength based on its bounding box.
+
+    The total wirelength is equal to half the perimeter of the bounding box.
+    """
     sx, sy = get_center_coordinates(net.source)
     xMin = sx
     xMax = xMin
@@ -454,6 +664,10 @@ def calculate_net_HPWL(net:Net) -> float:
 # End of function
 
 def calculate_HPWL(design:Design) -> float:
+    """
+    Calculates the total wirelength of the design using the half-perimeter
+    wirelength for each net
+    """
     result:float = 0
 
     for net in design.core.nets:
