@@ -27,6 +27,7 @@ class GUI(Tk):
     _ratio: float = None
 
     show_components = True
+    show_components_names = True
     show_nets = False
     show_bins = False
     netSearch = None
@@ -78,9 +79,11 @@ class GUI(Tk):
 
                 self._canvas.create_rectangle(x, y, (width+x), (height+y),
                                               outline="blue", tags="comp")
-                self._canvas.create_text((x + (width / 2)), (y + (height / 2)),
-                                         text=self._design.core.components[i].name,
-                                         fill="blue", width=width, tags="comp")
+
+                if self.show_components_names:
+                    self._canvas.create_text((x + (width / 2)), (y + (height / 2)),
+                                            text=self._design.core.components[i].name,
+                                            fill="blue", width=width, tags=["comp","compNames"])
         else:
             self._canvas.delete("comp")
             self._canvas.delete("nets")
@@ -89,6 +92,12 @@ class GUI(Tk):
         self.show_components = not self.show_components
         self.update()
         self.update_idletasks()
+    # End of method
+
+    def _draw_component_names(self):
+        if not self.show_components:
+            if self.show_components_names:
+                self._canvas.delete("compNames")
     # End of method
 
     def _recursive_net_drawing(self, node:NetTreeNode, color="orange", tags=""):
@@ -374,71 +383,90 @@ class GUI(Tk):
     # End of method
 
     def _draw_buttons(self):
+        rowNumber = 0
+
         toggleComponentsButton = Button(
             self._buttonsFrame,text="Toggle Components", width=20,
             command= lambda:self.__draw_components()
         )
-        toggleComponentsButton.grid(row=0, column=0, columnspan=2, sticky="N")
+        toggleComponentsButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
+        
+        toggleComponentsButton = Button(
+            self._buttonsFrame,text="Hide Components Names", width=20,
+            command= lambda:self._draw_component_names()
+        )
+        toggleComponentsButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
 
         toggleNetsP2PButton = Button(
             self._buttonsFrame,text="Toggle Nets (P2P)", width=20,
             command= lambda:self._draw_nets()
         )
-        toggleNetsP2PButton.grid(row=1, column=0, columnspan=2, sticky="N")
+        toggleNetsP2PButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
 
         toggleNetsTreeButton = Button(
             self._buttonsFrame,text="Toggle Nets (Tree)", width=20,
             command= lambda:self._draw_nets(drawP2P=False)
         )
-        toggleNetsTreeButton.grid(row=2, column=0, columnspan=2, sticky="N")
+        toggleNetsTreeButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
 
         toggleBinsButton = Button(
             self._buttonsFrame,text="Toggle Bins", width=20,
             command= lambda:self._draw_bins()
         )
-        toggleBinsButton.grid(row=3, column=0, columnspan=2, sticky="N")
+        toggleBinsButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
 
         binsHeatmapButton = Button(
             self._buttonsFrame,text="Routing Bins Heatmap", width=20,
             command= lambda:self._bins_heatmap(self._design.bins)
         )
-        binsHeatmapButton.grid(row=4, column=0, columnspan=2, sticky="N")
+        binsHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
 
         elementBinsHeatmapButton = Button(
             self._buttonsFrame,text="Element Bins Heatmap", width=20,
             command= lambda:self._bins_heatmap(self._design.elementBins)
         )
-        elementBinsHeatmapButton.grid(row=5, column=0, columnspan=2, sticky="N")
+        elementBinsHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
     
         blockagesHeatmapButton = Button(
             self._buttonsFrame,text="Blockages Heatmap", width=20,
             command= lambda:self._bins_heatmap(self._design.blockages)
         )
-        blockagesHeatmapButton.grid(row=6, column=0, columnspan=2, sticky="N")
+        blockagesHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
 
         seperator = Separator(self._buttonsFrame, orient='horizontal')
-        seperator.grid(row=7, column=0, columnspan=2, sticky="EW", pady=5)
-
-        self.netSearch = Entry(self._buttonsFrame, width=10)
-        self.netSearch.grid(row=8, column=1, sticky="N")
+        seperator.grid(row=rowNumber, column=0, columnspan=2, sticky="EW", pady=5)
+        rowNumber += 1
 
         higlightTreeButton = Button(
             self._buttonsFrame, text="Highlight Tree", height=1,
             command= lambda:self._highlight_net(drawP2P=False),width= 10
         )
-        higlightTreeButton.grid(row=8, column=0, sticky="N")
+        higlightTreeButton.grid(row=rowNumber, column=0, sticky="N")
+
+        self.netSearch = Entry(self._buttonsFrame, width=10)
+        self.netSearch.grid(row=rowNumber, column=1, sticky="N")
+        rowNumber += 1
 
         highlightP2PButton = Button(
             self._buttonsFrame, text="Highlight P2P", height=1,
             command= lambda:self._highlight_net(),width= 10
         )
-        highlightP2PButton.grid(row=9, column=0, sticky="N")
+        highlightP2PButton.grid(row=rowNumber, column=0, sticky="N")
 
         clearHighlightButton = Button(
             self._buttonsFrame, text="Clear", height=1,
             command=lambda:self._clear_highlight(),width= 10
         )
-        clearHighlightButton.grid(row=9, column=1, sticky="N")
+        clearHighlightButton.grid(row=rowNumber, column=1, sticky="N")
+        rowNumber += 1
     # End of method
 
     def _draw_gui(self):
