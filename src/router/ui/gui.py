@@ -3,7 +3,7 @@ Module housing the graphical user interface (GUI)
 """
 
 from tkinter import Tk, Canvas, Frame, Label, Button, Entry, messagebox
-from tkinter.ttk import Separator, Style
+from tkinter.ttk import Separator
 
 from matplotlib import pyplot
 
@@ -41,7 +41,20 @@ class GUI(Tk):
         self._design = design
     # End of method
 
-    def __draw_rows(self):
+    def _calc_ratio(self) -> None:
+        """Method used for calculating the drawing ratio"""
+
+        coreWidth, coreHeight = self._design.core.get_dimensions()
+        coreWidth += 2 * self._design.core.x_offset
+        coreHeight += 2 * self._design.core.y_offset
+        xRatio = (self._CanvasWidth - 2 * self._offset) / coreWidth
+        yRatio = (self._CanvasHeight - 2 * self._offset) / coreHeight
+        self._ratio = xRatio if (xRatio <= yRatio) else yRatio
+    # End of method
+
+    def _draw_rows(self) -> None:
+        """Method used for drawing the rows of the core"""
+
         for i in range(self._design.core.noof_rows()):
             x, y = self._design.core.rows[i].get_coordinates()
             width, height = self._design.core.rows[i].get_dimensions()
@@ -54,7 +67,9 @@ class GUI(Tk):
             self._canvas.create_rectangle(x, y, (width+x), (height+y))
     # End of method
 
-    def __draw_IO_ports(self):
+    def _draw_IO_ports(self) -> None:
+        """Method used for drawing the IO ports of the core"""
+
         for i in range(self._design.core.noof_IO_ports()):
             x, y = self._design.core.ioPorts[i].get_coordinates()
 
@@ -65,7 +80,14 @@ class GUI(Tk):
                                       (x+radius), (y+radius), fill="yellow")
     # End of method
 
-    def __draw_components(self):
+    def _draw_components(self) -> None:
+        """
+        Method used for drawing the components of the core.
+        
+        The names of the components are drawn depending the state of toggle
+        button.
+        """
+
         if self.show_components:
 
             for i in range(self._design.core.noof_components()):
@@ -81,9 +103,11 @@ class GUI(Tk):
                                               outline="blue", tags="comp")
 
                 if self.show_components_names:
-                    self._canvas.create_text((x + (width / 2)), (y + (height / 2)),
-                                            text=self._design.core.components[i].name,
-                                            fill="blue", width=width, tags=["comp","compNames"])
+                    self._canvas.create_text(
+                        (x + (width / 2)), (y + (height / 2)),
+                        text=self._design.core.components[i].name,
+                        fill="blue", width=width, tags=["comp","compNames"]
+                    )
         else:
             self._canvas.delete("comp")
             self._canvas.delete("nets")
@@ -98,6 +122,23 @@ class GUI(Tk):
         if not self.show_components:
             if self.show_components_names:
                 self._canvas.delete("compNames")
+            else:
+                for i in range(self._design.core.noof_components()):
+                    x, y = self._design.core.components[i].get_coordinates()
+                    width, height = self._design.core.components[i].get_dimensions()
+                    
+                    x = x * self._ratio + self._offset
+                    y = y * self._ratio + self._offset
+                    width *= self._ratio
+                    height *= self._ratio
+
+                    self._canvas.create_text(
+                        (x + (width / 2)), (y + (height / 2)),
+                        text=self._design.core.components[i].name,
+                        fill="blue", width=width, tags=["comp","compNames"]
+                    )
+        
+        self.show_components_names = not self.show_components_names
     # End of method
 
     def _recursive_net_drawing(self, node:NetTreeNode, color="orange", tags=""):
@@ -192,7 +233,12 @@ class GUI(Tk):
         self.show_nets = not self.show_nets
     # End of method
     
-    def _highlight_net(self, drawP2P = True):
+    def _highlight_net(self, drawP2P = True) -> None:
+        """
+        Method used for drawing a highlighted net. The net can either be P2P or
+        of a tree connection.
+        """
+
         netName = self.netSearch.get()
         net = self._design.core.get_net(netName)
         if (not net):
@@ -239,11 +285,15 @@ class GUI(Tk):
     # End of method
     
     def _clear_highlight(self):
+        """Method used for removing highlighted nets"""
+
         self._canvas.delete("highlight")
     # End of method
 
 
     def _draw_bins(self):
+        """Method used for drawing the bins of the design"""
+
         if (not self._design.bins): return
 
         if self.show_bins:
@@ -269,7 +319,16 @@ class GUI(Tk):
         self.show_bins = not self.show_bins
     # End of method
 
-    def _bins_heatmap(self, bins:Bins):
+    def _bins_heatmap(self, bins:(Bins|None), binsName:str) -> None:
+        """Method used for showing the heatmap of given bins"""
+
+        if bins == None:
+            messagebox.showinfo(
+                binsName,
+                "There are no bins. You need to create them first!"
+            )
+            return
+
         fig = pyplot.figure()
         plt = fig.add_subplot(111)
         hmap = plt.imshow(bins.bins, cmap='viridis')
@@ -277,7 +336,9 @@ class GUI(Tk):
         fig.show()
     # End of method
 
-    def _draw_core(self):
+    def _draw_core(self) -> None:
+        """Method used for drawing the core of the design"""
+
         if (self._design == None):
             self._canvas.create_text(
                 (self._width / 2), (self._height / 2),
@@ -287,12 +348,8 @@ class GUI(Tk):
             return
         
 
+        self._calc_ratio()
         coreWidth, coreHeight = self._design.core.get_dimensions()
-        coreWidth += 2 * self._design.core.x_offset
-        coreHeight += 2 * self._design.core.y_offset
-        xRatio = (self._CanvasWidth - 2 * self._offset) / coreWidth
-        yRatio = (self._CanvasHeight - 2 * self._offset) / coreHeight
-        self._ratio = xRatio if (xRatio <= yRatio) else yRatio
 
         # Core
         self._canvas.create_rectangle(
@@ -302,13 +359,13 @@ class GUI(Tk):
         )
 
         # Rows
-        self.__draw_rows()
+        self._draw_rows()
 
         # IO Ports
-        self.__draw_IO_ports()
+        self._draw_IO_ports()
 
-        # Componenta
-        self.__draw_components()
+        # Components
+        self._draw_components()
 
         # Nets
         self._draw_nets()
@@ -383,17 +440,19 @@ class GUI(Tk):
     # End of method
 
     def _draw_buttons(self):
+        """Buttons used for understanding the implementation of the algorithm"""
+
         rowNumber = 0
 
         toggleComponentsButton = Button(
             self._buttonsFrame,text="Toggle Components", width=20,
-            command= lambda:self.__draw_components()
+            command= lambda:self._draw_components()
         )
         toggleComponentsButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
         rowNumber += 1
         
         toggleComponentsButton = Button(
-            self._buttonsFrame,text="Hide Components Names", width=20,
+            self._buttonsFrame,text="Toggle Comp. Names", width=20,
             command= lambda:self._draw_component_names()
         )
         toggleComponentsButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
@@ -422,21 +481,21 @@ class GUI(Tk):
 
         binsHeatmapButton = Button(
             self._buttonsFrame,text="Routing Bins Heatmap", width=20,
-            command= lambda:self._bins_heatmap(self._design.bins)
+            command= lambda:self._bins_heatmap(self._design.bins, "Routing Bins")
         )
         binsHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
         rowNumber += 1
 
         elementBinsHeatmapButton = Button(
             self._buttonsFrame,text="Element Bins Heatmap", width=20,
-            command= lambda:self._bins_heatmap(self._design.elementBins)
+            command= lambda:self._bins_heatmap(self._design.elementBins, "Elements")
         )
         elementBinsHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
         rowNumber += 1
     
         blockagesHeatmapButton = Button(
             self._buttonsFrame,text="Blockages Heatmap", width=20,
-            command= lambda:self._bins_heatmap(self._design.blockages)
+            command= lambda:self._bins_heatmap(self._design.blockages, "Blockages")
         )
         blockagesHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
         rowNumber += 1
@@ -470,6 +529,8 @@ class GUI(Tk):
     # End of method
 
     def _draw_gui(self):
+        """Method used for drawning the GUI"""
+
         if (self._design == None):
             Label(self, text="There is no design loaded",
                   font=("Arial", 40)).pack(padx=(self._width/2),

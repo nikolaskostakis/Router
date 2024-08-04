@@ -16,7 +16,7 @@ placementLogger.addHandler(config.logfileHandler)
 
 MAX_RANDOM_TRIES = 100000
 
-def random_placer(core: Core) -> bool:
+def random_placer(core: Core, random_tries:int = MAX_RANDOM_TRIES) -> bool:
     """
     Function used to place the components of the design in random positions
     Returns True if successful and False otherwise
@@ -46,7 +46,7 @@ def random_placer(core: Core) -> bool:
     rows = core.noof_rows()
     for comp in core.components:
         placed = False
-        for j in range(MAX_RANDOM_TRIES):
+        for j in range(random_tries):
             newRow = random.randrange(0, rows)
             xMin,y = core.rows[newRow].get_coordinates()
             width = comp.width

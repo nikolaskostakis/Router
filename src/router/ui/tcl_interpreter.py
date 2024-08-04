@@ -15,6 +15,7 @@ from .gui import GUI
 from file_io.parsers import practical_format_parcer, components_location_parser
 from file_io.writers import write_component_positions
 from place_and_route.placement import random_placer
+from place_and_route.placement import MAX_RANDOM_TRIES
 from place_and_route.routing import maze_routing, calculate_tree_wirelength
 from place_and_route.routing import calculate_HPWL, calculate_net_HPWL
 from place_and_route.routing import calculate_net_tree_wirelength
@@ -156,7 +157,7 @@ class TclInterpreter:
                 y = int(args[2])
             except ValueError:
                 interfaceLogger.error(
-                    "Dimentions for bins are ment to be integers")
+                    "Dimentions for bins are meant to be integers")
                 return False
             
             size  = self._design.blockages.size
@@ -250,7 +251,7 @@ class TclInterpreter:
                 height = int(args[2])
             except ValueError:
                 interfaceLogger.error(
-                    "Dimentions for bins are ment to be integers")
+                    "Dimentions for bins are meant to be integers")
                 return False
             
             self._design.create_bins(width, height)
@@ -425,8 +426,8 @@ class TclInterpreter:
                 if not self._design:
                     interfaceLogger.info("There is no design loaded")
                     return
-                net:Net = self._design.core.get_net(args[0])
-                if (not net):
+                net:(Net | None) = self._design.core.get_net(args[0])
+                if (net == None):
                     interfaceLogger.error(f"There is no net {args[0]}")
                     return False
                 else:
@@ -439,8 +440,27 @@ class TclInterpreter:
     # End of method
 
     def _place_random(self, *args) -> bool:
+        commandFormat = "place_random [-h | -tries noof_tries]"
+        commandDescription = \
+                f"Random placer for components, default: {MAX_RANDOM_TRIES}"
         # TODO: max tries for placement given by the user and show default value
-        if random_placer(self._design.core):
+        if (len(args) == 0):
+            result = random_placer(self._design.core)
+        elif ((len(args) == 1) & (args[0] == "-h")):
+            print(f"{commandFormat}\n{commandDescription}")
+            return True
+        elif ((len(args) == 2) & (args[0] == "-tries")):
+            try:
+                noof_tries = int(args[1])
+            except ValueError:
+                interfaceLogger.error(
+                    "Number of placement tries are meant to be integers")
+                return False
+            result = random_placer(self._design.core, noof_tries)
+        else:
+            raise TclError
+
+        if result:
             interfaceLogger.info("Random placement was sucessfull")
             return True
         else:
@@ -501,7 +521,7 @@ class TclInterpreter:
                 y = int(args[2])
             except ValueError:
                 interfaceLogger.error(
-                    "Dimentions for bins are ment to be integers")
+                    "Dimentions for bins are meant to be integers")
                 return False
             
             size  = self._design.blockages.size
