@@ -17,7 +17,11 @@ routingLogger.setLevel(logging.DEBUG)
 routingLogger.addHandler(config.consoleHandler)
 routingLogger.addHandler(config.logfileHandler)
 
-def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
+def maze_routing_net(
+    net:Net, design: Design,
+    startRoutingFromCenter = False,
+    clockwiseRouting = True
+) -> None:
     """
     Routing algorithm based on Lee's Maze Routing for a single net
     """
@@ -315,7 +319,8 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
         nonlocal pointNum
         nonlocal connectionsTree
         pointsOnBin = connectionsTree.find_points_on_bin(activeBin)
-        routingLogger.debug(f" <> {binsQueue} {pointsOnBin}")
+        routingLogger.debug(f"binsQueue: {binsQueue}")
+        routingLogger.debug(f"pointsOnBin: {pointsOnBin}")
         match len(binsQueue):
             case 0:
                 match len(pointsOnBin):
@@ -335,6 +340,7 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                         newNode = NetTreeNode(newPoint.name,newPoint)
                         newNode.add_child(NetTreeNode(endpoint.name, endpoint))
                         _rearrange_tree(nearestNode, newNode)
+                    # End of case 0
                     case 1:
                         parent = pointsOnBin.pop()
 
@@ -346,7 +352,7 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                                 NetTreeNode(endpoint.name, endpoint))
                         else:
                             _expand_connections_tree(parent, endpoint)
-                            
+                    # End of case 1
                     case multiplePoints:
                         pointsOnBin.sort(
                             key=lambda dr: _distance_netNodes_sqrd(dr.point))
@@ -360,6 +366,9 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                                 NetTreeNode(endpoint.name, endpoint))
                         else:
                             _expand_connections_tree(parent, endpoint)
+                    # End of case multiplePoints
+                # End of match len(pointsOnBin)
+            # End of case 0
             case 1:
                 point = binsQueue.pop()
                 match len(pointsOnBin):
@@ -395,6 +404,7 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                         else:
                             newNode.point.x = ex
                         newNode.add_child(NetTreeNode(endpoint.name, endpoint))
+                    # End of case 0
                     case 1:
                         parent = pointsOnBin.pop()
 
@@ -411,6 +421,7 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                         parent.add_child(newNode)
                         newNode.add_child(NetTreeNode(endpoint.name, endpoint))
                         #_rearrange_tree(parent,newNode)
+                    # End of case 1
                     case multiplePoints:
                         pointsOnBin.sort(
                             key=lambda dr: _distance_netNodes_sqrd(dr.point))
@@ -427,6 +438,9 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                         newNode = NetTreeNode(newPoint.name,newPoint)
                         parent.add_child(newNode)
                         newNode.add_child(NetTreeNode(endpoint.name, endpoint))
+                    # End of case multiplePoints
+                # End of match len(pointsOnBin)
+            # End of case 1
             case moreBTPoints:
                 routingLogger.info(f"More points from backtrace {moreBTPoints}")
                 routingLogger.info(binsQueue)
@@ -481,6 +495,7 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                         else:
                             parent.point.x = ex
                         parent.add_child(NetTreeNode(endpoint.name, endpoint))
+                    # End of case 0
                     case 1:
                         routingLogger.info("One point of the tree")
                         parent = pointsOnBin.pop()
@@ -508,6 +523,7 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                         else:
                             parent.point.x = ex
                         parent.add_child(NetTreeNode(endpoint.name, endpoint))
+                    # End of case 1
                     case multiplePoints:
                         routingLogger.info(f"Multiple points: {multiplePoints}")
 
@@ -557,7 +573,10 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
                         else:
                             parent.point.x = ex
                         parent.add_child(NetTreeNode(endpoint.name, endpoint))
-
+                    # End of case multiplePoints
+                # End of match len(pointsOnBin)
+            # End of case moreBTPoints
+        # End of match len(binsQueue)
     # End of function
 
     def _distance_bins(bin):
@@ -577,38 +596,80 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
     pointNum = 1
     routingLogger.debug(f"Net: {net.name}")
 
-    sourceBin = net.source.bin
-    if (design.blockages[sourceBin] != 0):
-        routingLogger.warning(
-            f"Net {net.name} cannot be router due to source being into blockage"
-        )
-        return
+    if startRoutingFromCenter:
+        cX,cY = calculate_bb_center(net)
+        cName = f"{net.name}_center"
+        source = NetPoint(cName, cX, cY)
+        source.bin = design.find_bin((cX, cY))
 
-    connectionsTree = NetTreeNode(net.source.name, net.source)
-    netBins = [sourceBin]
-
-    net.drain.sort(key=lambda dr: _distance_bins(dr.bin))
-
-    for endpoint in net.drain:
-        if (endpoint == net.source):
-            continue
-
-        routingLogger.debug(f"Endpoint: {endpoint}")
-        drain = endpoint.bin
-        if (design.blockages[drain] != 0):
+        sourceBin = source.bin
+        if (design.blockages[sourceBin] != 0):
             routingLogger.warning(
-                f"In net {net.name}: Endpoint {endpoint.name} is into blockage"
+                f"Net {net.name} cannot be router due to source being into blockage"
             )
-            continue
+            return
 
-        binsQueue: list[tuple[int,int]] = []
-        _propagate_wave()
-        activeBin = _backtrace()
+        connectionsTree = NetTreeNode(source.name, source)
+        netBins = [sourceBin]
 
-        _connect_points()
+        netNewDrain = net.drain.copy()
+        netNewDrain.append(net.source)
 
-        tempBinsArray.fill(0)
-    # End of for loop
+        netNewDrain.sort(key=lambda dr: _distance_bins(dr.bin))
+
+        for endpoint in netNewDrain:
+
+            routingLogger.debug(f"Endpoint: {endpoint}")
+            drain = endpoint.bin
+            if (design.blockages[drain] != 0):
+                routingLogger.warning(
+                    f"In net {net.name}: Endpoint {endpoint.name} is into blockage"
+                )
+                continue
+
+            binsQueue: list[tuple[int,int]] = []
+            _propagate_wave()
+            activeBin = _backtrace()
+
+            _connect_points()
+
+            tempBinsArray.fill(0)
+        # End of for loop
+    # End of if startRoutingFromCenter
+    else:
+        sourceBin = net.source.bin
+        if (design.blockages[sourceBin] != 0):
+            routingLogger.warning(
+                f"Net {net.name} cannot be router due to source being into blockage"
+            )
+            return
+
+        connectionsTree = NetTreeNode(net.source.name, net.source)
+        netBins = [sourceBin]
+
+        net.drain.sort(key=lambda dr: _distance_bins(dr.bin))
+
+        for endpoint in net.drain:
+            if (endpoint == net.source):
+                continue
+
+            routingLogger.debug(f"Endpoint: {endpoint}")
+            drain = endpoint.bin
+            if (design.blockages[drain] != 0):
+                routingLogger.warning(
+                    f"In net {net.name}: Endpoint {endpoint.name} is into blockage"
+                )
+                continue
+
+            binsQueue: list[tuple[int,int]] = []
+            _propagate_wave()
+            activeBin = _backtrace()
+
+            _connect_points()
+
+            tempBinsArray.fill(0)
+        # End of for loop
+    # End of else
 
     for change in netBins:
         design.bins[change] += 1
@@ -618,7 +679,9 @@ def maze_routing_net(net:Net, design: Design, clockwiseRouting = True) -> None:
     
 # End of function
 
-def maze_routing(design: Design, clockwiseRouting = True) -> None:
+def maze_routing(
+    design: Design, startRoutingFromCenter = False, clockwiseRouting = True
+) -> None:
     """
     Routing algorithm based on Lee's Maze Routing
     """
@@ -628,12 +691,41 @@ def maze_routing(design: Design, clockwiseRouting = True) -> None:
         return
 
     for net in design.core.nets:
-        maze_routing_net(net, design, clockwiseRouting)
+        maze_routing_net(net, design, startRoutingFromCenter, clockwiseRouting)
 
     design.isRouted = True
     routingLogger.debug("Routing completed")
 # End of function
 
+
+def calculate_bb_center(net:Net) -> tuple[float, float]:
+    """
+    Calculates and returns the center of the bounding box for the given net.
+    """
+    sx, sy = get_center_coordinates(net.source)
+    xMin = sx
+    xMax = xMin
+    yMin = sy
+    yMax = yMin
+
+    for endpoint in net.drain:
+        ex, ey = get_center_coordinates(endpoint)
+        # X coordinate
+        if (ex < xMin):
+            xMin = ex
+        if (ex > xMax):
+            xMax = ex
+        # Y coordinate
+        if (ey < yMin):
+            yMin = ey
+        if (ey > yMax):
+            yMax = ey
+    
+    xCenter = xMin + (xMax - xMin)/2
+    yCenter = yMin + (yMax - yMin)/2
+
+    return (xCenter, yCenter)
+# End of function
 
 def calculate_net_HPWL(net:Net) -> float:
     """

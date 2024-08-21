@@ -350,6 +350,8 @@ class GUI(Tk):
 
         self._calc_ratio()
         coreWidth, coreHeight = self._design.core.get_dimensions()
+        coreWidth += 2 * self._design.core.x_offset
+        coreHeight += 2 * self._design.core.y_offset
 
         # Core
         self._canvas.create_rectangle(

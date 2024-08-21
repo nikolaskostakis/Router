@@ -341,7 +341,7 @@ class TclInterpreter:
     # End of method
 
     def _maze_routing(self, *args) -> bool:
-        commandFormat = "maze_routing [-h | -counterclockwise]"
+        commandFormat = "maze_routing [-h | -counterclockwise | -startRoutingFromCenter]"
         commandDescription = "Routing"
         if (len(args) == 1):
             if (args[0] == "-h"):
@@ -357,6 +357,17 @@ class TclInterpreter:
                     return
 
                 maze_routing(self._design, clockwiseRouting=False)
+                return True
+            elif (args[0] == "-startRoutingFromCenter"):
+                if not self._design:
+                    interfaceLogger.info("There is no design loaded")
+                    return
+
+                if not self._design.bins:
+                    interfaceLogger.info("There are no bins for routing to be done")
+                    return
+
+                maze_routing(self._design, startRoutingFromCenter=True)
                 return True
             else:
                 raise TclError
@@ -375,7 +386,7 @@ class TclInterpreter:
     # End of method
 
     def _maze_routing_net(self, *args) -> bool:
-        commandFormat = "maze_routing_net [-h | net [-counterclockwise]]"
+        commandFormat = "maze_routing_net [-h | net [-counterclockwise | -startRoutingFromCenter]]"
         commandDescription = "Routing specific net"
         if (len(args) == 1):
             if (args[0] == "-h"):
@@ -385,8 +396,8 @@ class TclInterpreter:
                 if not self._design:
                     interfaceLogger.info("There is no design loaded")
                     return
-                net:Net = self._design.core.get_net(args[0])
-                if (not net):
+                net:(Net|None) = self._design.core.get_net(args[0])
+                if net is None:
                     interfaceLogger.error(f"There is no net {args[0]}")
                     return False
                 else:
@@ -408,6 +419,22 @@ class TclInterpreter:
                     return False
                 else:
                     maze_routing_net(net, self._design, clockwiseRouting=False)
+                    return True
+            elif (args[1] == "-startRoutingFromCenter"):
+                if not self._design:
+                    interfaceLogger.info("There is no design loaded")
+                    return
+
+                if not self._design.bins:
+                    interfaceLogger.info("There are no bins for routing to be done")
+                    return
+
+                net:Net = self._design.core.get_net(args[0])
+                if (not net):
+                    interfaceLogger.error(f"There is no net {args[0]}")
+                    return False
+                else:
+                    maze_routing_net(net, self._design, startRoutingFromCenter=True)
                     return True
             else:
                 raise TclError
