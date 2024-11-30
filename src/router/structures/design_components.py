@@ -354,11 +354,11 @@ class NetTreeNode(GenericTreeNode):
     endpoints
     """
 
-    _point:(IOPort|Component|Pin|NetPoint)
+    _point:(IOPort|Component|NetPoint)
 
     def __init__(
             self, name:str,
-            point:(IOPort|Component|Pin|NetPoint),
+            point:(IOPort|Component|NetPoint),
             parent:NetTreeNode = None
         ) -> None:
         super().__init__(name, parent)
@@ -369,7 +369,7 @@ class NetTreeNode(GenericTreeNode):
         return f"{self._name}"
 
     @property
-    def point(self) -> (IOPort|Component|Pin|NetPoint):
+    def point(self) -> (IOPort|Component|NetPoint):
         """"""
         return self._point
     # End of method

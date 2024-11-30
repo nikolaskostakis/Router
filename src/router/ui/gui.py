@@ -119,6 +119,7 @@ class GUI(Tk):
     # End of method
 
     def _draw_component_names(self):
+        """Method used for drawing the names of the components in the canvas"""
         if not self.show_components:
             if self.show_components_names:
                 self._canvas.delete("compNames")
@@ -137,11 +138,17 @@ class GUI(Tk):
                         text=self._design.core.components[i].name,
                         fill="blue", width=width, tags=["comp","compNames"]
                     )
+                # End for loop
+            # End else
+        # End if
         
         self.show_components_names = not self.show_components_names
     # End of method
 
     def _recursive_net_drawing(self, node:NetTreeNode, color="orange", tags=""):
+        """
+        Recursive method used for drawing the tree representatio of a net
+        """
         lineTags = ["nets","treeView"]
         lineTags.append(tags)
         if node.children == []:
@@ -180,14 +187,17 @@ class GUI(Tk):
     # End of method
 
     def _draw_nets(self, drawP2P:bool = True):
+        """
+        Method used for drawing the nets on the canvas
+        """
         if ((not self._design.isRouted) & (not drawP2P)):
             messagebox.showinfo("Tree view", 
-                                "There is no tree view. Run routing first!")
+                "There is no tree view. Run routing first!")
             return
 
         if self.show_nets:
-            for net in self._design.core.nets:
-                if drawP2P:
+            if drawP2P:
+                for net in self._design.core.nets:
                     x1, y1 = net.source.get_coordinates()
                     if (net.source.__class__.__name__ == "IOPort"):
                         w1 = 0
@@ -215,15 +225,20 @@ class GUI(Tk):
                         x2 += w2/2
                         y2 += h2/2
 
-                        self._canvas.create_line(x1,y1,x2,y2,
-                                                fill="black",
-                                                tags=["nets","P2P"])
-                else:
+                        self._canvas.create_line(x1, y1, x2, y2,
+                            fill="black", tags=["nets","P2P"])
+                # End for loop
+            # End if p2p
+            else:
+                for net in self._design.core.nets:
                     if (net.connectionsTree is None):
                         messagebox.showinfo("Tree view", 
-                                f"There is no tree connection for net {net.name}")
+                            f"There is no tree connection for net {net.name}")
                         continue
                     self._recursive_net_drawing(net.connectionsTree)
+                # End for loop
+            # End else tree view
+        # End if show nets
         else:
             if (drawP2P):
                 self._canvas.delete("P2P")
@@ -235,53 +250,57 @@ class GUI(Tk):
     
     def _highlight_net(self, drawP2P = True) -> None:
         """
-        Method used for drawing a highlighted net. The net can either be P2P or
-        of a tree connection.
+        Method used for drawing a highlighted net. The net can
+        either be P2P orof a tree connection.
         """
 
         netName = self.netSearch.get()
         net = self._design.core.get_net(netName)
         if (not net):
             messagebox.showinfo("Net searching", f"There is no net {netName}")
-        else:
-            if drawP2P:
-                x1, y1 = net.source.get_coordinates()
-                if (net.source.__class__.__name__ == "IOPort"):
-                    w1 = 0
-                    h1 = 0
-                else:
-                    w1, h1 = net.source.get_dimensions()
+            return
 
-                x1 = x1 * self._ratio + self._offset
-                y1 = y1 * self._ratio + self._offset
-                w1 *= self._ratio
-                h1 *= self._ratio
-
-                x1 += w1/2
-                y1 += h1/2
-
-                for dr in net.drain:
-                    x2, y2 = dr.get_coordinates()
-                    w2, h2 = dr.get_dimensions()
-
-                    x2 = x2 * self._ratio + self._offset
-                    y2 = y2 * self._ratio + self._offset
-                    w2 *= self._ratio
-                    h2 *= self._ratio
-
-                    x2 += w2/2
-                    y2 += h2/2
-
-                    self._canvas.create_line(x1,y1,x2,y2,
-                                            fill="purple",
-                                            tags=["nets","P2P", "highlight"])
+        if drawP2P:
+            x1, y1 = net.source.get_coordinates()
+            if (net.source.__class__.__name__ == "IOPort"):
+                w1 = 0
+                h1 = 0
             else:
-                if not net.connectionsTree:
-                    messagebox.showinfo("Tree view", 
-                                    "There is no tree view. Run routing first!")
-                else:
-                    self._recursive_net_drawing(net.connectionsTree,
-                                                color="red",tags="highlight")
+                w1, h1 = net.source.get_dimensions()
+
+            x1 = x1 * self._ratio + self._offset
+            y1 = y1 * self._ratio + self._offset
+            w1 *= self._ratio
+            h1 *= self._ratio
+
+            x1 += w1/2
+            y1 += h1/2
+
+            for dr in net.drain:
+                x2, y2 = dr.get_coordinates()
+                w2, h2 = dr.get_dimensions()
+
+                x2 = x2 * self._ratio + self._offset
+                y2 = y2 * self._ratio + self._offset
+                w2 *= self._ratio
+                h2 *= self._ratio
+
+                x2 += w2/2
+                y2 += h2/2
+
+                self._canvas.create_line(x1,y1,x2,y2,
+                                        fill="purple",
+                                        tags=["nets","P2P", "highlight"])
+            # End for loop
+        # End if
+        else:
+            if not net.connectionsTree:
+                messagebox.showinfo("Tree view", 
+                                "There is no tree view. Run routing first!")
+                return
+            self._recursive_net_drawing(net.connectionsTree,
+                                            color="red",tags="highlight")
+        # End else
     # End of method
     
     def _clear_highlight(self):

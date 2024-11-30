@@ -40,8 +40,10 @@ def random_placer(core: Core, random_tries:int = MAX_RANDOM_TRIES) -> bool:
                 continue
 
             return False
+        # End of for loop
         
         return True
+    # End of inner function
 
     rows = core.noof_rows()
     for comp in core.components:
@@ -60,6 +62,7 @@ def random_placer(core: Core, random_tries:int = MAX_RANDOM_TRIES) -> bool:
 
                 placed = True
                 break
+            # End if statement
 
         if not placed:
             index = core.components.index(comp)
@@ -67,6 +70,8 @@ def random_placer(core: Core, random_tries:int = MAX_RANDOM_TRIES) -> bool:
                 f"Failed at {index + 1}/{core.noof_components()}")
             placedComponents.clear()
             return False
+        # End if statement
+    # End for loop
     
     placedComponents.clear()
     return True
