@@ -1,3 +1,6 @@
+# Ignore __pycache__ folder created by python
 __pycache__/
+
+# Ignore files created during the execution of the tool
 data/*.txt
 data/*.log

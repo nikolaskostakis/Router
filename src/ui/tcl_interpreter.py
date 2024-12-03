@@ -666,5 +666,4 @@ class TclInterpreter:
         else:
             self.interpreter()
     # End of method
-        self._start_gui()
 # End of class

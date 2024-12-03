@@ -1,5 +1,4 @@
 SRC = src
-ROUTER = router
 FILE_IO = file_io
 P_n_R = place_and_route
 STRUCTS = structures
@@ -14,31 +13,31 @@ ARGS:
 
 # Linux Run
 run:
-	python3 ./$(SRC)/$(ROUTER)/router.py ${ARGS}
+	python3 ./$(SRC)/router.py ${ARGS}
 # Linux Help
 help:
-	python3 ./$(SRC)/$(ROUTER)/router.py -h
+	python3 ./$(SRC)/router.py -h
 
 # Windows Run
 run_win:
-	python .\$(SRC)\$(ROUTER)\router.py $(ARGS)
+	python .\$(SRC)\router.py $(ARGS)
 # Windows Help
 help_win:
-	python .\$(SRC)\$(ROUTER)\router.py -h
+	python .\$(SRC)\router.py -h
 
 # Cleanups
 # Cleanup for linux executions
 clean:
-	rm -rf ./$(SRC)/$(ROUTER)/$(PYCACHE)
-	rm -rf ./$(SRC)/$(ROUTER)/$(FILE_IO)/$(PYCACHE)
-	rm -rf ./$(SRC)/$(ROUTER)/$(P_n_R)/$(PYCACHE)
-	rm -rf ./$(SRC)/$(ROUTER)/$(STRUCTS)/$(PYCACHE)
-	rm -rf ./$(SRC)/$(ROUTER)/$(UI)/$(PYCACHE)
+	rm -rf ./$(SRC)/$(PYCACHE)
+	rm -rf ./$(SRC)/$(FILE_IO)/$(PYCACHE)
+	rm -rf ./$(SRC)/$(P_n_R)/$(PYCACHE)
+	rm -rf ./$(SRC)/$(STRUCTS)/$(PYCACHE)
+	rm -rf ./$(SRC)/$(UI)/$(PYCACHE)
 
 # Cleanup for windows executions
 clean_win:
-	rd /s /q $(SRC)\$(ROUTER)\$(PYCACHE)
-	rd /s /q $(SRC)\$(ROUTER)\$(FILE_IO)\$(PYCACHE)
-	rd /s /q $(SRC)\$(ROUTER)\$(P_n_R)\$(PYCACHE)
-	rd /s /q $(SRC)\$(ROUTER)\$(STRUCTS)\$(PYCACHE)
-	rd /s /q $(SRC)\$(ROUTER)\$(UI)\$(PYCACHE)
+	rd /s /q $(SRC)\$(PYCACHE)
+	rd /s /q $(SRC)\$(FILE_IO)\$(PYCACHE)
+	rd /s /q $(SRC)\$(P_n_R)\$(PYCACHE)
+	rd /s /q $(SRC)\$(STRUCTS)\$(PYCACHE)
+	rd /s /q $(SRC)\$(UI)\$(PYCACHE)
