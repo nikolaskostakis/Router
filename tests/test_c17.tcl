@@ -9,4 +9,6 @@ net_info N3
 maze_routing 
 net_info N3
 start_gui
+save_design -f c17.pickle
+list_io_ports
 exit

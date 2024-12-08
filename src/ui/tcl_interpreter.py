@@ -4,6 +4,7 @@ Module containing the TCL Interpreter
 
 import os
 import logging
+import pickle
 
 import readline
 from tkinter import Tk, Tcl, TclError
@@ -13,7 +14,8 @@ from structures.design_components import Design, Net
 from structures.trees import print_generic_tree
 from .gui import GUI
 from file_io.parsers import practical_format_parcer, components_location_parser
-from file_io.writers import write_component_positions
+from file_io.parsers import design_pickle_parser
+from file_io.writers import write_component_positions, pickle_design_to_file
 from place_and_route.placement import random_placer
 from place_and_route.placement import MAX_RANDOM_TRIES
 from place_and_route.routing import maze_routing, calculate_tree_wirelength
@@ -308,8 +310,35 @@ class TclInterpreter:
     # End of method
 
     def _load_design(self, *args):
-        self._print_yellow("Under Construction")
-        print("To be used for loading design used on previous run")
+        commandFormat = "load_design [-h | -f file]"
+        commandDescription = "Load strored design from given file"
+
+        if ((len(args) == 1) & (args[0] == "-h")):
+            print(f"{commandFormat}\n{commandDescription}")
+            return True
+        elif ((len(args) == 2) & (args[0] == "-f")):
+            if self._design:
+                interfaceLogger.info("Design is already loaded")
+                return False
+
+            try:
+                with open(args[1], "rb") as file:
+                    newDesign = design_pickle_parser(file)
+            except IOError:
+                interfaceLogger.error(f"There is no file: {args[1]}")
+                return False
+            
+            if (newDesign == None):
+                interfaceLogger.error(f"Design was not loaded")
+                return False
+
+            self._design = newDesign
+            interfaceLogger.info(f"Design loaded: {self._design.name}")
+            return True
+        else:
+            print(args)
+            print(len(args))
+            raise TclError
     # End of method
 
     def _load_components_coords(self, *args) -> bool:
@@ -514,6 +543,10 @@ class TclInterpreter:
                 interfaceLogger.error(f"There is no file: {args[1]}")
                 return False
             
+            if (newDesign == None):
+                interfaceLogger.error(f"Design was not loaded")
+                return False
+
             self._design = newDesign
             interfaceLogger.info(f"Design loaded: {self._design.name}")
             return True
@@ -573,8 +606,21 @@ class TclInterpreter:
     # End of method
 
     def _save_design(self, *args):
-        self._print_yellow("Under Construction")
-        print("To be used for saving design for future runs")
+        commandFormat = "save_design [-h | -f file]"
+        commandDescription = "Saves the design to given file"
+
+        if ((len(args) == 1) & (args[0] == "-h")):
+            print(f"{commandFormat}\n{commandDescription}")
+            return
+        elif ((len(args) == 2) & (args[0] == "-f")):
+            if not self._design:
+                interfaceLogger.info("Design is not loaded")
+                return
+
+            with open(args[1], "wb") as file:
+                pickle_design_to_file(file, self._design)
+        else:
+            raise TclError
     # End of method
 
     def _save_components_coords(self, *args):
@@ -608,6 +654,9 @@ class TclInterpreter:
 
         print("Test command used during development")
 
+        fp = open('c17.pickle', 'rb')
+
+        self._design = design_pickle_parser(fp)
         #Code for testing below:
 
     # End of method

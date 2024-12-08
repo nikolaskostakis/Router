@@ -3,6 +3,7 @@ Module containing file parsers
 """
 
 import logging
+import pickle
 import re
 from io import TextIOWrapper
 
@@ -17,7 +18,7 @@ parsersLogger.addHandler(config.consoleHandler)
 parsersLogger.addHandler(config.logfileHandler)
 
 #class PracticalFormatParser:
-def practical_format_parcer(file:TextIOWrapper) -> Design:
+def practical_format_parcer(file:TextIOWrapper) -> (Design | None):
     """A parser for files written based on the practical format"""
 
     # The states of the parser
@@ -63,7 +64,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
         design = Design(name, comments)
 
         return design
-    # End of function
+    # End of inner function
 
     def _core_info_section(file:TextIOWrapper) -> bool:
         """Parses the section with core information"""
@@ -127,7 +128,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
         # Create the core of the design
         design.create_core(util, width, height, ratio, xOffset, yOffset)
         return True
-    # End of function
+    # End of inner function
 
     def _rows_section(file:TextIOWrapper) -> bool:
         """Parses the section with Rows"""
@@ -183,7 +184,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
             line = file.readline().rstrip()
         
         return True
-    # End of function
+    # End of inner function
 
     def io_ports_section(file:TextIOWrapper) -> bool:
         """Parses the section with IO Ports"""
@@ -239,7 +240,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
             line = file.readline().rstrip()
         
         return True
-    # End of function
+    # End of inner function
 
     def _create_component(
             name:str, type:str = None, timingType:str = None,
@@ -271,7 +272,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
                 newComponent.timingType = timingType
 
         return newComponent
-    # End of function
+    # End of inner function
 
     def _create_net(source:(IOPort|Component), components:list[str]) -> Net:
         """Creates a net from given source and components"""
@@ -291,7 +292,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
         
         # Add new net to the design
         return Net(name, source, newDrain)
-    # End of function
+    # End of inner function
 
     def io_ports_ccs_section(file:TextIOWrapper) -> bool:
         """Parses the section with the connections to the IO Ports"""
@@ -327,7 +328,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
             line = file.readline().rstrip()
         
         return True
-    # End of function
+    # End of inner function
 
     def components_section(file:TextIOWrapper) -> bool:
         """Parses the section with the components"""
@@ -408,7 +409,7 @@ def practical_format_parcer(file:TextIOWrapper) -> Design:
 
             line = file.readline().rstrip()
         return True
-    # End of function
+    # End of inner function
 
     # Parse file 
     for state in fileSections:
@@ -521,7 +522,8 @@ def components_location_parser(file:TextIOWrapper, design: Design):
         
             # Fetch next line
             line = file.readline().rstrip()
-        
+        # End of while loop
+
         return True
     # End of function
 
@@ -545,4 +547,58 @@ def components_location_parser(file:TextIOWrapper, design: Design):
         comp.y = fComp[2]
     
     return True
+# End of function
+
+def design_pickle_parser(file:TextIOWrapper) -> Design:
+    """"""
+    newDesign = pickle.load(file)
+    if not isinstance(newDesign, Design):
+        parsersLogger.error("File is not created by this tool")
+        return None
+    
+    rowsList = pickle.load(file)
+    if not isinstance(rowsList, list):
+        parsersLogger.error("File is not created by this tool")
+        return None
+    for row in rowsList:
+        if not isinstance(row, Row):
+            parsersLogger.error("File is not created by this tool")
+            del newDesign
+            return None
+        newDesign.core.add_row(row)
+    
+    ioPortsList = pickle.load(file)
+    if not isinstance(ioPortsList, list):
+        parsersLogger.error("File is not created by this tool")
+        return None
+    for io in ioPortsList:
+        if not isinstance(io, IOPort):
+            parsersLogger.error("File is not created by this tool")
+            del newDesign
+            return None
+        newDesign.core.add_IO_port(io)
+    
+    cellsList = pickle.load(file)
+    if not isinstance(cellsList, list):
+        parsersLogger.error("File is not created by this tool")
+        return None
+    for cell in cellsList:
+        if not isinstance(cell, Component):
+            parsersLogger.error("File is not created by this tool")
+            del newDesign
+            return None
+        newDesign.core.add_component(cell)
+    
+    netsList = pickle.load(file)
+    if not isinstance(netsList, list):
+        parsersLogger.error("File is not created by this tool")
+        return None
+    for net in netsList:
+        if not isinstance(net, Net):
+            parsersLogger.error("File is not created by this tool")
+            del newDesign
+            return None
+        newDesign.core.add_net(net)
+    
+    return newDesign
 # End of function

@@ -3,4 +3,6 @@ __pycache__/
 
 # Ignore files created during the execution of the tool
 data/*.txt
+data/*.pickle
+data/*.pkl
 data/*.log

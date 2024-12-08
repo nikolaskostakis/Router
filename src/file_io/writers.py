@@ -3,11 +3,12 @@ Module containing file writers
 """
 
 import logging
+import pickle
 from io import TextIOWrapper
 
 import config
 from . import HASH_LINE
-from structures.design_components import Component
+from structures.design_components import Design, Component
 
 # Logging
 writersLogger = logging.getLogger(__name__)
@@ -42,4 +43,19 @@ def write_component_positions(file:TextIOWrapper,
         file.write(line)
     
     writersLogger.debug(f"Components stored: {len(components)}")
+# End of function
+
+def pickle_design_to_file(file:TextIOWrapper, design: Design) -> None:
+    """Writes the deign and all its elements into a file using pickle"""
+
+    # Write the design to the file
+    # The bins are stored as well
+    pickle.dump(design, file)
+
+    # Write the lists of the various elements
+    pickle.dump(design.core.rows, file)
+    pickle.dump(design.core.ioPorts, file)
+    pickle.dump(design.core.components, file)
+    pickle.dump(design.core.nets, file)
+    return
 # End of function
