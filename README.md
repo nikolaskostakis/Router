@@ -1,19 +1,21 @@
 # Router
-- This tool is created as my thesis
-- It is based on Lee's Maze Routing Algorithm
-- Written in Python
+This project is a routing tool, based on Lee's Maze Algorithm & is part of my thesis.
 
-# Required Packages
+> The project is still under development!
+
+## Requirements
+Python 3.10 and beyond
+### Required packages
 - tkinter
 - pyreadline
 - numpy
 - mathplotlib
 
-# Project structure
+## Project structure
     Router/
     ├── benchmarks/
     ├── data/
-    ├── router/
+    ├── src/
     │   ├── file_io/
     │   │   ├── __init__.py
     │   │   ├── parsers.py

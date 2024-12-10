@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
+
 """
 Module containing functions for routing
 """
+
+__author__ = "Nikolaos Kostakis"
+__copyright__ = "Copyright (c) 2024 Nikolaos Kostakis"
+__license__ = "MIT License"
+__version__ = "1.0"
 
 import logging
 
@@ -55,52 +62,28 @@ def maze_routing_net(
         while (len(activeList) != 0):
             activeBin = activeList.pop(0)
 
-            if clockwiseRouting:
-                #NESW
-                # North
-                if (activeBin[0] != 0):
-                    north = ((activeBin[0] - 1), activeBin[1])
-                    _propagate_to_direction(north)
-                # End if North
-                # East
-                if ((activeBin[1] + 1) != size[1]):
-                    east = (activeBin[0], (activeBin[1] + 1))
-                    _propagate_to_direction(east)
-                # End if East
-                # South
-                if ((activeBin[0] +1) != size[0]):
-                    south = ((activeBin[0] + 1), activeBin[1])
-                    _propagate_to_direction(south)
-                # End if South
-                # West
-                if (activeBin[1] != 0):
-                    west = (activeBin[0], (activeBin[1] - 1))
-                    _propagate_to_direction(west)
-                # End if West
-            # End if for clockwise
-            else:
-                #NWSE
-                # North
-                if (activeBin[0] != 0):
-                    north = ((activeBin[0] - 1), activeBin[1])
-                    _propagate_to_direction(north)
-                # End if North
-                # West
-                if (activeBin[1] != 0):
-                    west = (activeBin[0], (activeBin[1] - 1))
-                    _propagate_to_direction(west)
-                # End if West
-                # South
-                if ((activeBin[0] +1) != size[0]):
-                    south = ((activeBin[0] + 1), activeBin[1])
-                    _propagate_to_direction(south)
-                # End if South
-                # East
-                if ((activeBin[1] + 1) != size[1]):
-                    east = (activeBin[0], (activeBin[1] + 1))
-                    _propagate_to_direction(east)
-                # End if East
-            # End else for counterclockwise
+            #NESW movement is chosen
+            # North
+            if (activeBin[0] != 0):
+                north = ((activeBin[0] - 1), activeBin[1])
+                _propagate_to_direction(north)
+            # End if North
+            # East
+            if ((activeBin[1] + 1) != size[1]):
+                east = (activeBin[0], (activeBin[1] + 1))
+                _propagate_to_direction(east)
+            # End if East
+            # South
+            if ((activeBin[0] +1) != size[0]):
+                south = ((activeBin[0] + 1), activeBin[1])
+                _propagate_to_direction(south)
+            # End if South
+            # West
+            if (activeBin[1] != 0):
+                west = (activeBin[0], (activeBin[1] - 1))
+                _propagate_to_direction(west)
+            # End if West
+           
             visitedList.append(activeBin)
         # End of while
     # End of function

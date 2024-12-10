@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
+
 """
 Config module used for global variables
 """
+
+__author__ = "Nikolaos Kostakis"
+__copyright__ = "Copyright (c) 2024 Nikolaos Kostakis"
+__license__ = "MIT License"
+__version__ = "1.0"
 
 import logging
 import sys
