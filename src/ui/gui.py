@@ -36,6 +36,7 @@ class GUI(Tk):
     show_components = True
     show_components_names = True
     show_nets = False
+    show_blockages = False
     show_bins = False
     netSearch = None
 
@@ -115,6 +116,7 @@ class GUI(Tk):
                         text=self._design.core.components[i].name,
                         fill="blue", width=width, tags=["comp","compNames"]
                     )
+            # End for loop
         else:
             self._canvas.delete("comp")
             self._canvas.delete("nets")
@@ -174,6 +176,7 @@ class GUI(Tk):
         x1 += w1/2
         y1 += h1/2
 
+        child:NetTreeNode
         for child in node.children:
             x2, y2 = child.point.get_coordinates()
             if (child.point.__class__.__name__ == "Component"):
@@ -345,7 +348,37 @@ class GUI(Tk):
         self.show_bins = not self.show_bins
     # End of method
 
-    def _bins_heatmap(self, bins:(Bins|None), binsName:str) -> None:
+    def _draw_blockages(self):
+        """Method used for drawing the bins of the design"""
+
+        if (not self._design.blockages): return
+
+        if self.show_blockages:
+            binsY, binsX = self._design._blockages.size
+
+            coreWidth, coreHeight = self._design.core.get_dimensions()
+            coreWidth += 2 * self._design.core.x_offset
+            coreHeight += 2 * self._design.core.y_offset
+
+            bw = coreWidth * self._ratio / binsX
+            bh = coreHeight * self._ratio / binsY
+            for i in range(binsX):
+                for j in range(binsY):
+                    if (self._design.blockages[(j,i)]):
+                        x1 = (i * bw) + self._offset
+                        y1 = (j * bh) + self._offset
+                        x2 = ((i+1) * bw) + self._offset
+                        y2 = ((j+1) * bh) + self._offset
+                        self._canvas.create_rectangle(x1, y1, x2, y2,
+                                                outline="brown", stipple="gray12",fill="brown", tags="blockages")
+        else:
+            self._canvas.delete("blockages")
+
+        self.show_blockages = not self.show_blockages
+    # End of method
+
+    @staticmethod
+    def heatmap(bins:(Bins|None), binsName:str) -> None:
         """Method used for showing the heatmap of given bins"""
 
         if bins == None:
@@ -355,8 +388,19 @@ class GUI(Tk):
             )
             return
 
+        xAxis = list(range(bins.size[1]))
+        yAxis = list(range(bins.size[0]))
+
         fig = pyplot.figure()
         plt = fig.add_subplot(111)
+        plt.set_title(f"Heatmap of {binsName}")
+        plt.set_xticks(xAxis)
+        plt.set_yticks(yAxis)
+
+        #for i in range(bins.size[0]):
+        #    for j in range(bins.size[1]):
+        #        text = plt.text(j, i, bins.bins[i,j],ha="center", va="center", color="r")
+
         hmap = plt.imshow(bins.bins, cmap='viridis')
         fig.colorbar(hmap)
         fig.show()
@@ -400,10 +444,18 @@ class GUI(Tk):
 
         # Bins
         self._draw_bins()
+
+        # Blockages
+        self._draw_blockages()
     # End of method
 
     def _draw_core_info(self):
         """Information about the design shown in the info Frame"""
+
+        
+        self._infoFrame.columnconfigure(0,weight=1)
+        self._infoFrame.columnconfigure(1,weight=1)
+        self._infoFrame.columnconfigure(2,weight=1)
 
         designLabel = Label(self._infoFrame, text="Design:")
         designLabel.grid(row=0, column=0, sticky="NW")
@@ -453,18 +505,20 @@ class GUI(Tk):
     def _draw_bins_info(self):
         """Information about the bins in the bins Frame"""
         if (not self._design.bins):
-            Label(self._binsFrame,text="There are no bins").grid(
-                row=0, column=0,sticky="N")
+            Label(self._binsFrame,text="There are no bins").place(x=75, y=25, anchor="center")
             return
+        
+        self._binsFrame.columnconfigure(0,weight=1)
+        self._binsFrame.columnconfigure(1,weight=1)
 
         binsHeaderLabel = Label(self._binsFrame, text="Bins")
-        binsHeaderLabel.grid(row=0, column=0, columnspan=2, sticky="N")
+        binsHeaderLabel.grid(row=0, column=0, columnspan=2, sticky="ESW",pady=5)
 
         sizeHeaderLabel = Label(self._binsFrame, text="Size")
-        sizeHeaderLabel.grid(row=1,column=0)
+        sizeHeaderLabel.grid(row=1,column=0,sticky="E")
 
         sizeLabel = Label(self._binsFrame, text=f"{self._design.bins.size}")
-        sizeLabel.grid(row=1,column=1)
+        sizeLabel.grid(row=1,column=1,sticky="W")
     # End of method
 
     def _draw_buttons(self):
@@ -507,23 +561,30 @@ class GUI(Tk):
         toggleBinsButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
         rowNumber += 1
 
+        toggleBinsButton = Button(
+            self._buttonsFrame,text="Toggle Blockages", width=20,
+            command= lambda:self._draw_blockages()
+        )
+        toggleBinsButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
+        rowNumber += 1
+
         binsHeatmapButton = Button(
             self._buttonsFrame,text="Routing Bins Heatmap", width=20,
-            command= lambda:self._bins_heatmap(self._design.bins, "Routing Bins")
+            command= lambda:self.heatmap(self._design.bins, "Routing Bins")
         )
         binsHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
         rowNumber += 1
 
         elementBinsHeatmapButton = Button(
-            self._buttonsFrame,text="Element Bins Heatmap", width=20,
-            command= lambda:self._bins_heatmap(self._design.elementBins, "Elements")
+            self._buttonsFrame,text="Component Bins Heatmap", width=20,
+            command= lambda:self.heatmap(self._design.componentBins, "Component Bins")
         )
         elementBinsHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
         rowNumber += 1
     
         blockagesHeatmapButton = Button(
             self._buttonsFrame,text="Blockages Heatmap", width=20,
-            command= lambda:self._bins_heatmap(self._design.blockages, "Blockages")
+            command= lambda:self.heatmap(self._design.blockages, "Blockages")
         )
         blockagesHeatmapButton.grid(row=rowNumber, column=0, columnspan=2, sticky="N")
         rowNumber += 1
@@ -560,9 +621,8 @@ class GUI(Tk):
         """Method used for drawning the GUI"""
 
         if (self._design == None):
-            Label(self, text="There is no design loaded",
-                  font=("Arial", 40)).pack(padx=(self._width/2),
-                                           pady=(self._height/2))
+            Label(self, text="There is no design loaded",font=("Arial", 40)
+                  ).place(x=(self._width/2),y=(self._height/2), anchor="center")
             return
 
         self._canvas = Canvas(self,width = self._CanvasWidth,
@@ -582,7 +642,7 @@ class GUI(Tk):
         self._draw_bins_info()
 
         # Buttons
-        self._buttonsFrame = Frame(self, width=150, height= 300)
+        self._buttonsFrame = Frame(self, width=150, height= 350)
         self._buttonsFrame.grid(row=2, column=0, sticky="NSEW", padx=10, pady=5)
         self._draw_buttons()
         
@@ -592,3 +652,4 @@ class GUI(Tk):
         self._draw_gui()
         super().mainloop(n)
     # End of method
+# End of class

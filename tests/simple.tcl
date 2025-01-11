@@ -17,7 +17,13 @@
 #calculate_WL -HPWL
 #calculate_WL -tree
 #quit
-load_design -f c17.pickle
+load_design -f data\\c17.pickle
+test
+show_heatmap -all
+bins_info
+start_gui
+exit
+
 bins_info
 net_info N5
 net_info N8

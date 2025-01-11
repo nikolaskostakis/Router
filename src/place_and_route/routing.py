@@ -33,9 +33,9 @@ def maze_routing_net(
     Routing algorithm based on Lee's Maze Routing for a single net
     """
 
-    def _propagate_wave() -> None:
+    def _propagate_wave_phase() -> None:
         """
-        First stage of the maze routing algorithm.
+        First phase of the maze routing algorithm.
 
         Propagates wave from the source (existing net)
         """
@@ -88,9 +88,9 @@ def maze_routing_net(
         # End of while
     # End of function
 
-    def _backtracking():
+    def _backtracking_phase():
         """
-        Second stage of the maze routing algorithm.
+        Second phase of the maze routing algorithm.
 
         Backtracking from the destination to the source.
         """
@@ -181,7 +181,6 @@ def maze_routing_net(
                         value = tempBinsArray[east]
                 # End if East
             # End else for counterclockwise
-
             if ((direction != None) & (direction != newDirection)):
                 binsQueue.insert(0, activeBin)
 
@@ -189,45 +188,23 @@ def maze_routing_net(
             activeBin = nextBin
 
             direction = newDirection
+        # End of while
+
         netBins.extend(backtrackingRoute)
         return activeBin
     # End of function
 
-    def _connect_points() -> None:
+    def _connection_phase() -> None:
+        """
+        Third phase of maze routing
+        """
+
         def _distance_netNodes_sqrd(point:(IOPort|Component|NetPoint)) -> float:
             """
             Returns the distance squared between the endpoint an a given point
             """
-            dist = (endpoint.x - point.x)**2 + (endpoint.y - point.y)**2
+            dist = (ex - point.x)**2 + (ey - point.y)**2
             return dist
-        # End of inner function
-
-        def _expand_connections_tree(
-                point:NetTreeNode,
-                endpoint:(IOPort | Component),
-            ) -> None:
-            nonlocal pointNum
-            """Adds new point between endpoint and existing point"""
-            px, py = get_center_coordinates(point.point)
-            ex, ey = get_center_coordinates(endpoint)
-
-            if clockwiseRouting :
-                if (((px < ex) & (py < ey)) | ((px > ex) & (py > ey))):
-                    newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
-                else:
-                    newPoint=NetPoint(f"{net.name}_{pointNum}",px,ey)
-            else:
-                if (((px < ex) & (py < ey)) | ((px > ex) & (py > ey))):
-                    newPoint=NetPoint(f"{net.name}_{pointNum}",px,ey)
-                else:
-                    newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
-
-            newPoint.bin = design.find_bin(newPoint.get_coordinates())
-            pointNum += 1
-                            
-            newNode = NetTreeNode(newPoint.name,newPoint)
-            newNode.add_child(NetTreeNode(endpoint.name, endpoint))
-            _rearrange_tree(point, newNode)
         # End of inner function
 
         def _rearrange_tree(node: NetTreeNode, newNode: NetTreeNode) -> None:
@@ -236,7 +213,9 @@ def maze_routing_net(
             """
             nx,ny = get_center_coordinates(node.point)
             nnx,nny = get_center_coordinates(newNode.point)
-            if ((parentNode := node.parent) is not None):
+
+            parentNode: NetTreeNode = node.parent
+            if (parentNode is not None):
                 px,py = get_center_coordinates(parentNode.point)
                 if (
                     ((nx == nnx) & (nx == px)
@@ -265,273 +244,259 @@ def maze_routing_net(
             node.add_child(newNode)
         # End of inner function
 
+        def no_corners():
+            """
+            Connects the drain to the existing tree without any intermediate 
+            point/corner from backtracking
+            """
+            
+            def _add_intermediate_node(
+                    point:NetTreeNode
+                ) -> None:
+                """
+                Adds if needed a new point between endpoint and existing point
+                """
+
+                nonlocal pointNum
+
+                px, py = get_center_coordinates(point.point)
+
+                if ((px == ex) | (py == ey)):
+                    parent.add_child(endNode)
+                    return
+
+                if clockwiseRouting :
+                    if (((px < ex) & (py < ey)) | ((px > ex) & (py > ey))):
+                        newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
+                    else:
+                        newPoint=NetPoint(f"{net.name}_{pointNum}",px,ey)
+                else:
+                    if (((px < ex) & (py < ey)) | ((px > ex) & (py > ey))):
+                        newPoint=NetPoint(f"{net.name}_{pointNum}",px,ey)
+                    else:
+                        newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
+
+                newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                pointNum += 1
+                                
+                newNode = NetTreeNode(newPoint.name,newPoint)
+                newNode.add_child(endNode)
+                _rearrange_tree(point, newNode)
+            # End of inner function
+
+            nonlocal pointNum
+
+            if len(pointsOnBin) == 0:
+                # If there are no points of the tree in the bin
+                nearestNode = connectionsTree.find_nearest_tree_node(
+                    endpoint.get_coordinates())
+
+                nx, ny = get_center_coordinates(nearestNode.point)
+
+                if (endpoint.bin[0] == activeBin[0]):
+                    newPoint= NetPoint(f"{net.name}_{pointNum}", nx, ey)
+                else:
+                    newPoint= NetPoint(f"{net.name}_{pointNum}", ex, ny)
+                pointNum += 1
+
+                newNode = NetTreeNode(newPoint.name,newPoint)
+                newNode.add_child(endNode)
+                _rearrange_tree(nearestNode, newNode)
+            # End of if
+            elif len(pointsOnBin) == 1:
+                parent = pointsOnBin.pop()
+
+                px, py = get_center_coordinates(parent.point)
+
+                _add_intermediate_node(parent)
+            # End of elif
+            else:
+                pointsOnBin.sort(
+                    key=lambda dr: _distance_netNodes_sqrd(dr.point))
+                parent = pointsOnBin.pop(0)
+
+                px, py = get_center_coordinates(parent.point)
+
+                _add_intermediate_node(parent)
+            # End of else
+        # End of inner function
+
+        def singleCorner():
+            """Connects drain to the existing tree with one intermediate 
+            point/corner from backtracking
+            """
+            nonlocal pointNum
+
+            point = binsQueue.pop()
+            if len(pointsOnBin) == 0:
+                # If there are no points of the tree in the bin
+                nearestNode = connectionsTree.find_nearest_tree_node(
+                    endpoint.get_coordinates())
+                cx, cy = design.find_center_of_bin(point)
+
+                nearestNode = connectionsTree.find_nearest_tree_node((cx, cy))
+                nx, ny = get_center_coordinates(nearestNode.point)
+
+                if (activeBin[0] == nearestNode.point.bin[0]):
+                    midPoint = NetPoint(f"{net.name}_{pointNum}", cx, ny)
+                else:
+                    midPoint = NetPoint(f"{net.name}_{pointNum}", nx, cy)
+                pointNum += 1
+
+                midNode = NetTreeNode(midPoint.name,midPoint)
+                midNode.point.bin = design.find_bin(midPoint.get_coordinates())
+                _rearrange_tree(nearestNode, midNode)
+
+                newPoint=NetPoint(f"{net.name}_{pointNum}",cx, cy)
+                newPoint.bin = design.find_bin(newPoint.get_coordinates())
+
+                if (newPoint.bin[0] == endpoint.bin[0]):
+                    newPoint.y = ey
+                else:
+                    newPoint.x = ex
+
+                newNode = NetTreeNode(newPoint.name, newPoint)
+                midNode.add_child(newNode)
+                pointNum += 1
+            # End of if
+            elif len(pointsOnBin) == 1:
+                parent = pointsOnBin.pop()
+
+                px, py = get_center_coordinates(parent.point)
+
+                if (parent.point.bin[0] == point[0]):
+                    newPoint = NetPoint(f"{net.name}_{pointNum}", ex, py)
+                else:
+                    newPoint = NetPoint(f"{net.name}_{pointNum}", px, ey)
+                pointNum += 1
+
+                newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                newNode = NetTreeNode(newPoint.name, newPoint)
+                parent.add_child(newNode)
+            # End of elif
+            else:
+                pointsOnBin.sort(
+                    key=lambda dr: _distance_netNodes_sqrd(dr.point))
+                parent = pointsOnBin.pop(0)
+                px, py = get_center_coordinates(parent.point)
+
+                if (parent.point.bin[0] == point[0]):
+                    newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
+                else:
+                    newPoint=NetPoint(f"{net.name}_{pointNum}",px, ey)
+                pointNum += 1
+
+                newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                newNode = NetTreeNode(newPoint.name,newPoint)
+                parent.add_child(newNode)
+            # End of else
+
+            newNode.add_child(endNode)
+        # End of inner function
+
+        def multipleCorners():
+            """Connects drain to the existing tree with multiple intermediate 
+            points/corners from backtracking"""
+            nonlocal pointNum
+
+            parent:NetTreeNode = None
+            corners: int
+            if len(pointsOnBin) == 0:
+                # If there are no points of the tree in the bin
+                pointBin = binsQueue.pop(0)
+                cx, cy = design.find_center_of_bin(pointBin)
+
+                nearestNode = connectionsTree.find_nearest_tree_node((cx, cy))
+                nx, ny = get_center_coordinates(nearestNode.point)
+
+                if (activeBin[0] == nearestNode.point.bin[0]):
+                    midPoint = NetPoint(f"{net.name}_{pointNum}", cx, ny)
+                else:
+                    midPoint = NetPoint(f"{net.name}_{pointNum}", nx, cy)
+                pointNum += 1
+
+                midNode = NetTreeNode(midPoint.name,midPoint)
+                midNode.point.bin = design.find_bin(midPoint.get_coordinates())
+                _rearrange_tree(nearestNode, midNode)
+
+                newPoint=NetPoint(f"{net.name}_{pointNum}",cx, cy)
+                newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                newNode = NetTreeNode(newPoint.name,newPoint)
+                midNode.add_child(newNode)
+                pointNum += 1
+
+                parent = newNode
+                corners = noofCorners -1
+            # End of if
+            elif len(pointsOnBin) == 1:
+                parent = pointsOnBin.pop()
+                corners = noofCorners
+            # End of elif
+            else:
+                pointBin = binsQueue.pop(0)
+                cx, cy = design.find_center_of_bin(pointBin)
+                pointsOnBin.sort(
+                    key=lambda dr: _distance_netNodes_sqrd(dr.point))
+                parent = pointsOnBin.pop(0)
+
+                px, py = get_center_coordinates(parent.point)
+
+                if (activeBin[0] == parent.point.bin[0]):
+                    newPoint = NetPoint(f"{net.name}_{pointNum}", cx, py)
+                else:
+                    newPoint = NetPoint(f"{net.name}_{pointNum}", px, cy)
+                pointNum += 1
+
+                newNode = NetTreeNode(newPoint.name,newPoint)
+                newNode.point.bin = design.find_bin(newPoint.get_coordinates())
+                _rearrange_tree(parent, newNode)
+
+                parent = newNode
+                corners = noofCorners -1
+            # End of else
+
+            for i in range(corners):
+                pointBin = binsQueue.pop(0)
+
+                px, py = get_center_coordinates(parent.point)
+                cx, cy = design.find_center_of_bin(pointBin)
+
+                if (parent.point.bin[0] == pointBin[0]):
+                    newPoint=NetPoint(f"{net.name}_{pointNum}",cx, py)
+                else:
+                    newPoint=NetPoint(f"{net.name}_{pointNum}",px, cy)
+                pointNum += 1
+                newPoint.bin = design.find_bin(newPoint.get_coordinates())
+                newNode = NetTreeNode(newPoint.name,newPoint)
+                parent.add_child(newNode)
+                parent = newNode
+            # End of for
+
+            if (parent.point.bin[0] == endpoint.bin[0]):
+                parent.point.y = ey
+            else:
+                parent.point.x = ex
+            parent.add_child(endNode)
+        # End of inner function
+
         nonlocal pointNum
         nonlocal connectionsTree
+
+        ex, ey = get_center_coordinates(endpoint)
+        endNode = NetTreeNode(endpoint.name, endpoint)
+
         pointsOnBin = connectionsTree.find_points_on_bin(activeBin)
-        routingLogger.debug(f"binsQueue: {binsQueue}")
-        routingLogger.debug(f"pointsOnBin: {pointsOnBin}")
+        routingLogger.debug(f"Corner bins for net: {binsQueue}")
+        routingLogger.debug(f"Points of net in bin: {pointsOnBin}")
 
         match len(binsQueue):
-            # Based on the bins where the direction changes
+            # Based on the bins where corners are created
             case 0:
-                # If there was no change in the direction
-                routingLogger.debug(f"No change to the direction")
-                match len(pointsOnBin):
-                    case 0:
-                        nearestNode = connectionsTree.find_nearest_tree_node(
-                            endpoint.get_coordinates())
-
-                        nx, ny = get_center_coordinates(nearestNode.point)
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if (endpoint.bin[0] == activeBin[0]):
-                            newPoint= NetPoint(f"{net.name}_{pointNum}", nx, ey)
-                        else:
-                            newPoint= NetPoint(f"{net.name}_{pointNum}", ex, ny)
-                        pointNum += 1
-
-                        newNode = NetTreeNode(newPoint.name,newPoint)
-                        newNode.add_child(NetTreeNode(endpoint.name, endpoint))
-                        _rearrange_tree(nearestNode, newNode)
-                    # End of case 0
-                    case 1:
-                        parent = pointsOnBin.pop()
-
-                        px, py = get_center_coordinates(parent.point)
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if ((px == ex) | (py == ey)):
-                            parent.add_child(
-                                NetTreeNode(endpoint.name, endpoint))
-                        else:
-                            _expand_connections_tree(parent, endpoint)
-                    # End of case 1
-                    case multiplePoints:
-                        pointsOnBin.sort(
-                            key=lambda dr: _distance_netNodes_sqrd(dr.point))
-                        parent = pointsOnBin.pop(0)
-
-                        px, py = get_center_coordinates(parent.point)
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if ((px == ex) | (py == ey)):
-                            parent.add_child(
-                                NetTreeNode(endpoint.name, endpoint))
-                        else:
-                            _expand_connections_tree(parent, endpoint)
-                    # End of case multiplePoints
-                # End of match len(pointsOnBin)
-            # End of case 0
+                no_corners()
             case 1:
-                # If there was a bin where the direction changed
-                point = binsQueue.pop()
-                routingLogger.debug(f"Direction change on {point}")
-                match len(pointsOnBin):
-                    case 0:
-                        nearestNode = connectionsTree.find_nearest_tree_node(
-                            endpoint.get_coordinates())
-                        cx, cy = design.find_center_of_bin(point)
-
-                        nearestNode = connectionsTree.find_nearest_tree_node((cx, cy))
-                        nx, ny = get_center_coordinates(nearestNode.point)
-
-                        if (activeBin[0] == nearestNode.point.bin[0]):
-                            midPoint = NetPoint(f"{net.name}_{pointNum}", cx, ny)
-                        else:
-                            midPoint = NetPoint(f"{net.name}_{pointNum}", nx, cy)
-                        pointNum += 1
-
-                        midNode = NetTreeNode(midPoint.name,midPoint)
-                        midNode.bin = design.find_bin(midPoint.get_coordinates())
-                        _rearrange_tree(nearestNode, midNode)
-
-                        newPoint=NetPoint(f"{net.name}_{pointNum}",cx, cy)
-                        newPoint.bin = design.find_bin(newPoint.get_coordinates())
-                        routingLogger.info(f"{newPoint}")
-                        newNode = NetTreeNode(newPoint.name,newPoint)
-                        midNode.add_child(newNode)
-                        pointNum += 1
-
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if (newNode.point.bin[0] == endpoint.bin[0]):
-                            newNode.point.y = ey
-                        else:
-                            newNode.point.x = ex
-                        newNode.add_child(NetTreeNode(endpoint.name, endpoint))
-                    # End of case 0
-                    case 1:
-                        parent = pointsOnBin.pop()
-
-                        px, py = get_center_coordinates(parent.point)
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if (parent.point.bin[0] == point[0]):
-                            newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
-                        else:
-                            newPoint=NetPoint(f"{net.name}_{pointNum}",px, ey)
-                        pointNum += 1
-                        newPoint.bin = design.find_bin(newPoint.get_coordinates())
-                        newNode = NetTreeNode(newPoint.name,newPoint)
-                        parent.add_child(newNode)
-                        newNode.add_child(NetTreeNode(endpoint.name, endpoint))
-                        #_rearrange_tree(parent,newNode)
-                    # End of case 1
-                    case multiplePoints:
-                        pointsOnBin.sort(
-                            key=lambda dr: _distance_netNodes_sqrd(dr.point))
-                        parent = pointsOnBin.pop(0)
-                        px, py = get_center_coordinates(parent.point)
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if (parent.point.bin[0] == point[0]):
-                            newPoint=NetPoint(f"{net.name}_{pointNum}",ex,py)
-                        else:
-                            newPoint=NetPoint(f"{net.name}_{pointNum}",px, ey)
-                        pointNum += 1
-                        newPoint.bin = design.find_bin(newPoint.get_coordinates())
-                        newNode = NetTreeNode(newPoint.name,newPoint)
-                        parent.add_child(newNode)
-                        newNode.add_child(NetTreeNode(endpoint.name, endpoint))
-                    # End of case multiplePoints
-                # End of match len(pointsOnBin)
-            # End of case 1
-            case moreBTPoints:
-                # If the direction changed on multiple bins 
-                routingLogger.debug(f"More points from backtrace {moreBTPoints}")
-                routingLogger.debug(binsQueue)
-                match len(pointsOnBin):
-                    case 0:
-                        routingLogger.info("Zero points of the tree")
-                        pointBin = binsQueue.pop(0)
-                        cx, cy = design.find_center_of_bin(pointBin)
-
-                        nearestNode = connectionsTree.find_nearest_tree_node((cx, cy))
-                        nx, ny = get_center_coordinates(nearestNode.point)
-
-                        if (activeBin[0] == nearestNode.point.bin[0]):
-                            midPoint = NetPoint(f"{net.name}_{pointNum}", cx, ny)
-                        else:
-                            midPoint = NetPoint(f"{net.name}_{pointNum}", nx, cy)
-                        pointNum += 1
-
-                        midNode = NetTreeNode(midPoint.name,midPoint)
-                        midNode.point.bin = design.find_bin(midPoint.get_coordinates())
-                        _rearrange_tree(nearestNode, midNode)
-
-                        newPoint=NetPoint(f"{net.name}_{pointNum}",cx, cy)
-                        newPoint.bin = design.find_bin(newPoint.get_coordinates())
-                        newNode = NetTreeNode(newPoint.name,newPoint)
-                        midNode.add_child(newNode)
-                        pointNum += 1
-
-                        parent = newNode
-                        for i in range(moreBTPoints - 1):
-                            routingLogger.info(f"Parent: {parent}")
-                            pointBin = binsQueue.pop(0)
-
-                            px, py = get_center_coordinates(parent.point)
-                            cx, cy = design.find_center_of_bin(pointBin)
-
-                            routingLogger.info(f"== {parent.point.bin} {pointBin}")
-                            if (parent.point.bin[0] == pointBin[0]):
-                                newPoint=NetPoint(f"{net.name}_{pointNum}",cx, py)
-                            else:
-                                newPoint=NetPoint(f"{net.name}_{pointNum}",px, cy)
-                            pointNum += 1
-                            newPoint.bin = design.find_bin(newPoint.get_coordinates())
-                            newNode = NetTreeNode(newPoint.name,newPoint)
-                            parent.add_child(newNode)
-                            parent = newNode
-                            #
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if (parent.point.bin[0] == endpoint.bin[0]):
-                            parent.point.y = ey
-                        else:
-                            parent.point.x = ex
-                        parent.add_child(NetTreeNode(endpoint.name, endpoint))
-                    # End of case 0
-                    case 1:
-                        routingLogger.info("One point of the tree")
-                        parent = pointsOnBin.pop()
-                        for i in range(moreBTPoints):
-                            routingLogger.info(f"Parent: {parent}")
-                            pointBin = binsQueue.pop(0)
-
-                            px, py = get_center_coordinates(parent.point)
-                            cx, cy = design.find_center_of_bin(pointBin)
-
-                            if (parent.point.bin[0] == pointBin[0]):
-                                newPoint=NetPoint(f"{net.name}_{pointNum}",cx, py)
-                            else:
-                                newPoint=NetPoint(f"{net.name}_{pointNum}",px, cy)
-                            pointNum += 1
-                            newPoint.bin = design.find_bin(newPoint.get_coordinates())
-                            newNode = NetTreeNode(newPoint.name,newPoint)
-                            parent.add_child(newNode)
-                            parent = newNode
-                            #
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if (parent.point.bin[0] == endpoint.bin[0]):
-                            parent.point.y = ey
-                        else:
-                            parent.point.x = ex
-                        parent.add_child(NetTreeNode(endpoint.name, endpoint))
-                    # End of case 1
-                    case multiplePoints:
-                        routingLogger.info(f"Multiple points: {multiplePoints}")
-
-                        pointBin = binsQueue.pop(0)
-                        cx, cy = design.find_center_of_bin(pointBin)
-                        pointsOnBin.sort(
-                            key=lambda dr: _distance_netNodes_sqrd(dr.point))
-                        parent = pointsOnBin.pop(0)
-                        routingLogger.info(f"parent: {parent}")
-                        routingLogger.info(f"point: {pointBin}")
-
-                        px, py = get_center_coordinates(parent.point)
-
-                        if (activeBin[0] == parent.point.bin[0]):
-                            newPoint = NetPoint(f"{net.name}_{pointNum}", cx, py)
-                        else:
-                            newPoint = NetPoint(f"{net.name}_{pointNum}", px, cy)
-                        pointNum += 1
-
-                        newNode = NetTreeNode(newPoint.name,newPoint)
-                        newNode.point.bin = design.find_bin(newPoint.get_coordinates())
-                        _rearrange_tree(parent, newNode)
-
-                        parent = newNode
-                        for i in range(moreBTPoints - 1):
-                            routingLogger.info(f"Parent: {parent}")
-                            pointBin = binsQueue.pop(0)
-
-                            px, py = get_center_coordinates(parent.point)
-                            cx, cy = design.find_center_of_bin(pointBin)
-
-                            routingLogger.info(f"== {parent.point.bin} {pointBin}")
-                            if (parent.point.bin[0] == pointBin[0]):
-                                newPoint=NetPoint(f"{net.name}_{pointNum}",cx, py)
-                            else:
-                                newPoint=NetPoint(f"{net.name}_{pointNum}",px, cy)
-                            pointNum += 1
-                            newPoint.bin = design.find_bin(newPoint.get_coordinates())
-                            newNode = NetTreeNode(newPoint.name,newPoint)
-                            parent.add_child(newNode)
-                            parent = newNode
-                            #
-                        ex, ey = get_center_coordinates(endpoint)
-
-                        if (parent.point.bin[0] == endpoint.bin[0]):
-                            parent.point.y = ey
-                        else:
-                            parent.point.x = ex
-                        parent.add_child(NetTreeNode(endpoint.name, endpoint))
-                    # End of case multiplePoints
-                # End of match len(pointsOnBin)
-            # End of case moreBTPoints
+                singleCorner()
+            case noofCorners:
+                multipleCorners()
         # End of match len(binsQueue)
     # End of function
 
@@ -600,10 +565,10 @@ def maze_routing_net(
             continue
 
         binsQueue: list[tuple[int,int]] = []
-        _propagate_wave()
-        activeBin = _backtracking()
+        _propagate_wave_phase()
+        activeBin = _backtracking_phase()
 
-        _connect_points()
+        _connection_phase()
 
         tempBinsArray.fill(0)
     # End of for loop

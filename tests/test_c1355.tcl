@@ -7,6 +7,8 @@ create_bins -size 13 13
 #list_io_ports
 #list_nets
 #maze_routing -counterclockwise
-maze_routing
+maze_routing -counterclockwise
+calculate_WL -HPWL
+calculate_WL -tree
 start_gui
 exit

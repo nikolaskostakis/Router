@@ -7,9 +7,12 @@ PYCACHE = __pycache__
 
 .PHONY: run run_win help help_win clean clean_win
 
-ARGS:
-	@echo "Use parameter 'ARGS=' to pass arguments on the run"
-	@echo "Example: make run ARGS='-i input.txt'"
+Make_help:
+	@echo "To run the tool, use parameters 'run' or 'run_win' for Linux and Windows"
+	@echo "executions respectively. Use parameter 'ARGS=' to pass arguments on the"
+	@echo "tool. Example: make run ARGS='-i input.txt'"
+	@echo
+	@echo "For additional help with the tool, use parameters 'help or 'help_win"
 
 # Linux Run
 run:

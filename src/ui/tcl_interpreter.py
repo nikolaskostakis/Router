@@ -78,7 +78,7 @@ class TclInterpreter:
         # Wirelength
         "calculate_net_WL", "calculate_WL",
         # GUI
-        "start_gui",
+        "start_gui", "show_heatmap",
         # Testing
         "test"
         ]
@@ -135,6 +135,7 @@ class TclInterpreter:
             "save_components_coords",
             self._save_components_coords
         )
+        self._tcl.createcommand("show_heatmap", self._show_heatmap)
         self._tcl.createcommand("start_gui", self._start_gui)
         self._tcl.createcommand("test", self._test)
     # End of method
@@ -424,6 +425,7 @@ class TclInterpreter:
     def _maze_routing_net(self, *args) -> bool:
         commandFormat = "maze_routing_net [-h | net [-counterclockwise | -startRoutingFromCenter]]"
         commandDescription = "Routing specific net"
+
         if (len(args) == 1):
             if (args[0] == "-h"):
                 print(f"{commandFormat}\n{commandDescription}")
@@ -432,6 +434,11 @@ class TclInterpreter:
                 if not self._design:
                     interfaceLogger.info("There is no design loaded")
                     return
+
+                if not self._design.bins:
+                    interfaceLogger.info("There are no bins for routing to be done")
+                    return
+
                 net:(Net|None) = self._design.core.get_net(args[0])
                 if net is None:
                     interfaceLogger.error(f"There is no net {args[0]}")
@@ -440,40 +447,52 @@ class TclInterpreter:
                     maze_routing_net(net, self._design)
                     return True
         elif (len(args) == 2):
+            routingFromCenter=False
+            clockwise=True
+
+            if not self._design:
+                interfaceLogger.info("There is no design loaded")
+                return
+
+            if not self._design.bins:
+                interfaceLogger.info("There are no bins for routing to be done")
+                return
+
             if (args[1] == "-counterclockwise"):
-                if not self._design:
-                    interfaceLogger.info("There is no design loaded")
-                    return
-
-                if not self._design.bins:
-                    interfaceLogger.info("There are no bins for routing to be done")
-                    return
-
                 net:Net = self._design.core.get_net(args[0])
                 if (not net):
                     interfaceLogger.error(f"There is no net {args[0]}")
                     return False
                 else:
-                    maze_routing_net(net, self._design, clockwiseRouting=False)
-                    return True
+                    clockwise = False
             elif (args[1] == "-startRoutingFromCenter"):
-                if not self._design:
-                    interfaceLogger.info("There is no design loaded")
-                    return
-
-                if not self._design.bins:
-                    interfaceLogger.info("There are no bins for routing to be done")
-                    return
-
                 net:Net = self._design.core.get_net(args[0])
                 if (not net):
                     interfaceLogger.error(f"There is no net {args[0]}")
                     return False
                 else:
-                    maze_routing_net(net, self._design, startRoutingFromCenter=True)
-                    return True
+                    routingFromCenter = True
             else:
                 raise TclError
+            
+            maze_routing_net(net, self._design, routingFromCenter, clockwise)
+            return True
+        elif (len(args) == 2):
+            if (
+                (
+                    (args[1] == "-counterclockwise") 
+                    & (args[2] == "-startRoutingFromCenter")
+                )
+                | (
+                    (args[2] == "-counterclockwise") 
+                    & (args[1] == "-startRoutingFromCenter")
+                )
+            ):
+                maze_routing_net(
+                    net, self._design, 
+                    startRoutingFromCenter=True, clockwiseRouting=False
+                )
+                return True
         else:
             raise TclError
     # End of method
@@ -650,6 +669,35 @@ class TclInterpreter:
             raise TclError
     # End of method
 
+    def _show_heatmap(self, *args):
+        commandFormat = "show_heatmap [-h | -components | -nets | -blockages | -all]"
+        commandDescription = "Saves component positions to given file"
+
+        if (len(args) == 1):
+            if (args[0] == "-h"):
+                print(f"{commandFormat}\n{commandDescription}")
+                return
+        
+            if not self._design:
+                interfaceLogger.info("Design is not loaded")
+                return
+            
+            if (args[0] == "-components"):
+                GUI.heatmap(self._design.componentBins, "Component Bins")
+            elif (args[0] == "-nets"):
+                GUI.heatmap(self._design.bins, "Routing Bins")
+            elif (args[0] == "-blockages"):
+                GUI.heatmap(self._design.blockages, "Blockages")
+            elif (args[0] == "-all"):
+                GUI.heatmap(self._design.componentBins, "Component Bins")
+                GUI.heatmap(self._design.bins, "Routing Bins")
+                GUI.heatmap(self._design.blockages, "Blockages")
+            else:
+                raise TclError
+        else:
+            raise TclError
+    # End of method
+
     def _start_gui(self):
         self._gui = GUI("Router", self._design)
 
@@ -661,9 +709,8 @@ class TclInterpreter:
 
         print("Test command used during development")
 
-        fp = open('c17.pickle', 'rb')
-
-        self._design = design_pickle_parser(fp)
+        GUI.heatmap(self._design.blockages, "Blockages")
+        GUI.heatmap(self._design.bins, "Bins")
         #Code for testing below:
 
     # End of method
