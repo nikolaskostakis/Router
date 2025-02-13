@@ -718,7 +718,8 @@ class Design:
     def __repr__(self) -> str:
         repr = f"Design: {self._name}\n{self._comments}\n{self.core}\n"
         if self._bins:
-            repr += f"{self._bins}"
+            y, x = self.bins.size
+            repr += f"Bins Grid size (X,Y): ({x},{y})"
         else:
             repr += f"No bins"
         return repr

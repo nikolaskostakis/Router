@@ -4,6 +4,8 @@ read_design -f benchmarks\\c1908.practicalformat.txt
 load_components_coords -f data\\c1908.txt
 #create_bins -size 14 14
 create_bins -size 28 28
+add_blockage -bin 19 13
+add_blockage -bin 14 13
 #list_components
 #list_io_ports
 #list_nets

@@ -10,7 +10,7 @@ add_blockage -bin 25 19
 #list_io_ports
 #list_nets
 #maze_routing -counterclockwise
-maze_routing
+maze_routing -counterclockwise
 start_gui
 calculate_WL -HPWL
 calculate_WL -tree

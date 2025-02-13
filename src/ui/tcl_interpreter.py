@@ -188,7 +188,8 @@ class TclInterpreter:
         if not self._design.bins:
             interfaceLogger.info("There are no bins created")
         else:
-            interfaceLogger.info(self._design.bins)
+            gridY, gridX = self._design.bins.size
+            interfaceLogger.info(f"Grid size (X,Y): ({gridX}, {gridY})")
     # End of method
 
 

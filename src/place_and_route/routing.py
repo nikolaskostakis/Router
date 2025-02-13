@@ -306,16 +306,12 @@ def maze_routing_net(
             elif len(pointsOnBin) == 1:
                 parent = pointsOnBin.pop()
 
-                px, py = get_center_coordinates(parent.point)
-
                 _add_intermediate_node(parent)
             # End of elif
             else:
                 pointsOnBin.sort(
                     key=lambda dr: _distance_netNodes_sqrd(dr.point))
                 parent = pointsOnBin.pop(0)
-
-                px, py = get_center_coordinates(parent.point)
 
                 _add_intermediate_node(parent)
             # End of else
@@ -330,8 +326,6 @@ def maze_routing_net(
             point = binsQueue.pop()
             if len(pointsOnBin) == 0:
                 # If there are no points of the tree in the bin
-                nearestNode = connectionsTree.find_nearest_tree_node(
-                    endpoint.get_coordinates())
                 cx, cy = design.find_center_of_bin(point)
 
                 nearestNode = connectionsTree.find_nearest_tree_node((cx, cy))
@@ -348,6 +342,7 @@ def maze_routing_net(
                 _rearrange_tree(nearestNode, midNode)
 
                 newPoint=NetPoint(f"{net.name}_{pointNum}",cx, cy)
+                pointNum += 1
                 newPoint.bin = design.find_bin(newPoint.get_coordinates())
 
                 if (newPoint.bin[0] == endpoint.bin[0]):
@@ -357,7 +352,6 @@ def maze_routing_net(
 
                 newNode = NetTreeNode(newPoint.name, newPoint)
                 midNode.add_child(newNode)
-                pointNum += 1
             # End of if
             elif len(pointsOnBin) == 1:
                 parent = pointsOnBin.pop()
@@ -673,6 +667,11 @@ def calculate_HPWL(design:Design) -> float:
 
 def calculate_net_tree_wirelength(net:Net) -> float:
     def _recursive_calculate_wirelength(node:NetTreeNode) -> float:
+        if node is None:
+            return 0
+        if node.children is None:
+            return 0
+
         if (len(node.children) == 0):
             return 0
         

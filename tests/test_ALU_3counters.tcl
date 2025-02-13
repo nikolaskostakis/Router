@@ -5,9 +5,9 @@ load_components_coords -f data\\ALU_3counters.txt
 # calculate_WL -HPWL
 # calculate_WL -tree
 create_bins -size 16 16
-#create_bins -size 7 7
+add_blockage -bin 2 11
 #add_blockage -bin 2 3
-maze_routing -counterclockwise
+maze_routing
 calculate_WL -HPWL
 calculate_WL -tree
 start_gui

@@ -11,13 +11,12 @@ create_bins -size 18 18
 #list_io_ports
 #list_nets
 #
-#add_blockage -bin 6 4 
-#add_blockage -bin 6 8
-#add_blockage -bin 9 6
+add_blockage -bin 6 8
 #maze_routing -counterclockwise
-maze_routing -counterclockwise
+maze_routing  
 #net_info N16
 calculate_WL -HPWL
 calculate_WL -tree
+design_info
 start_gui
 exit
